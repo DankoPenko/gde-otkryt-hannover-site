@@ -8,8 +8,8 @@
     <title>Где открыть — карта потенциала Ганновера</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1916'/%3E%3Cpath d='M32 11c-9.4 0-17 7.2-17 16.1C15 39.6 32 54 32 54s17-14.4 17-26.9C49 18.2 41.4 11 32 11Z' fill='%23efcc68'/%3E%3Ccircle cx='32' cy='28' r='7' fill='%230b1916'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://unpkg.com" />
-    <link rel="preconnect" href="https://tile.openstreetmap.org" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="preconnect" href="https://tiles.openfreemap.org" />
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" crossorigin="" />
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -67,7 +67,7 @@
         <section class="map-panel" aria-label="Карта бизнес-потенциала">
           <div id="map"></div>
           <div class="map-status" id="mapStatus"><span></span> Загрузка точек OSM…</div>
-          <div class="building-status" id="buildingStatus">⌂ Приблизьте карту — покажем жилые дома</div>
+          <div class="building-status" id="buildingStatus">⌂ Приблизьте — домики станут объёмными</div>
           <div class="legend" aria-label="Легенда карты">
             <div><i class="legend-dot bakery"></i>Пекарня</div>
             <div><i class="legend-dot high"></i>Высокий потенциал</div>
@@ -115,7 +115,7 @@
       <p class="dialog-note">OSM не гарантирует полноту. Для реального решения нужно сверить выдачу с Google Maps и местными каталогами, а затем добавить Zensus 2022, аренду и пешеходный трафик.</p>
     </dialog>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" crossorigin=""></script>
     <script src="./app.js"></script>
   </body>
 </html>
