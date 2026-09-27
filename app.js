@@ -1,4 +1,4 @@
-const bakeries = [
+let bakeries = [
   [52.3759,9.7320,"BackWerk Kröpcke"],[52.3745,9.7380,"Ditsch Hauptbahnhof"],[52.3705,9.7350,"Bäckerei am Aegi"],
   [52.3812,9.7177,"Linden Brot"],[52.3685,9.7140,"Calenberger Backstube"],[52.3600,9.7182,"Südstadt Bäckerei"],
   [52.3890,9.7356,"Nordstadt Backhaus"],[52.3978,9.7420,"Vahrenwalder Bäcker"],[52.4045,9.7650,"List Brot"],
@@ -6,7 +6,12 @@ const bakeries = [
   [52.3508,9.7330,"Döhrener Brot"],[52.3415,9.7470,"Wülfeler Backhaus"],[52.3650,9.6900,"Linden-Mitte Bäckerei"],
   [52.3735,9.6810,"Limmer Brot"],[52.3980,9.6870,"Stöckener Backstube"],[52.4140,9.7100,"Hainholz Bäcker"],
   [52.4170,9.8040,"Bothfelder Backhaus"],[52.3900,9.8230,"Misburger Bäckerei"],[52.3540,9.8060,"Kirchroder Brot"],
-  [52.3320,9.7000,"Ricklinger Backstube"],[52.3300,9.7800,"Mittelfelder Bäcker"],[52.3860,9.7020,"Bäckerei am Küchengarten"]
+  [52.3320,9.7000,"Ricklinger Backstube"],[52.3300,9.7800,"Mittelfelder Bäcker"],[52.3860,9.7020,"Bäckerei am Küchengarten"],
+  [52.3937336,9.6845368,"Rautes MarktCafé Herrenhausen"]
+];
+
+const verifiedUserPoints = [
+  [52.3937336,9.6845368,"Rautes MarktCafé Herrenhausen"]
 ];
 
 const candidates = [
@@ -28,9 +33,13 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
 const bakeryLayer = L.layerGroup().addTo(map);
 const coverageLayer = L.layerGroup().addTo(map);
 const candidateLayer = L.layerGroup().addTo(map);
+const buildingLayer = L.layerGroup().addTo(map);
 const candidateMarkers = new Map();
 let walkMinutes = 10;
 let selectedCandidate = null;
+let buildingRequest = null;
+let buildingTimer = null;
+const overpassEndpoints = ["https://overpass-api.de/api/interpreter", "https://overpass.kumi.systems/api/interpreter", "https://overpass.private.coffee/api/interpreter"];
 
 const bakeryIcon = L.divIcon({ className:"", html:'<div class="bakery-marker"></div>', iconSize:[22,22], iconAnchor:[11,20] });
 
@@ -40,16 +49,36 @@ function scoreColor(score) { return score >= 80 ? "#ea8157" : score >= 70 ? "#ef
 
 function renderCoverage() {
   coverageLayer.clearLayers();
+  if (map.getZoom() < 14) return;
   const radius = coverageRadius();
-  bakeries.forEach(([lat, lon]) => {
+  const visibleBounds = map.getBounds().pad(.25);
+  bakeries.filter(([lat,lon]) => visibleBounds.contains([lat,lon])).forEach(([lat, lon]) => {
     L.circle([lat,lon], { radius, stroke:true, weight:1, color:"#7d9b8e", opacity:.18, fill:true, fillColor:"#a9c0b5", fillOpacity:.08, interactive:false }).addTo(coverageLayer);
   });
-  document.getElementById("walkLabel").textContent = `при ${walkMinutes} мин пешком`;
-  const totals = {5:"31,4 тыс.",10:"18,7 тыс.",15:"9,2 тыс."};
-  document.getElementById("uncoveredTotal").textContent = totals[walkMinutes];
 }
 
 function renderBakeries() {
+  bakeryLayer.clearLayers();
+  if (map.getZoom() < 14) {
+    const cellSize = map.getZoom() <= 12 ? .035 : .018;
+    const groups = new Map();
+    bakeries.forEach(point => {
+      const key = `${Math.round(point[0] / cellSize)}:${Math.round(point[1] / cellSize)}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(point);
+    });
+    groups.forEach(points => {
+      const lat = points.reduce((sum,point) => sum + point[0],0) / points.length;
+      const lon = points.reduce((sum,point) => sum + point[1],0) / points.length;
+      if (points.length === 1) {
+        L.marker([lat,lon], {icon:bakeryIcon, keyboard:true, title:points[0][2]}).addTo(bakeryLayer);
+        return;
+      }
+      const icon = L.divIcon({className:"",html:`<div class="cluster-marker">${points.length}</div>`,iconSize:[32,32],iconAnchor:[16,16]});
+      L.marker([lat,lon], {icon,title:`${points.length} точек`}).on("click", () => map.flyTo([lat,lon], Math.min(15,map.getZoom()+2), {duration:.6})).addTo(bakeryLayer);
+    });
+    return;
+  }
   bakeries.forEach(([lat,lon,name]) => {
     L.marker([lat,lon], {icon:bakeryIcon, keyboard:true, title:name})
       .bindTooltip(`<b>${name}</b><br><span style="color:#74817c">Существующая точка</span>`, {direction:"top", offset:[0,-16]})
@@ -57,7 +86,118 @@ function renderBakeries() {
   });
 }
 
+function coordinatesFor(element) {
+  if (typeof element.lat === "number" && typeof element.lon === "number") return [element.lat, element.lon];
+  if (element.center && typeof element.center.lat === "number") return [element.center.lat, element.center.lon];
+  return null;
+}
+
+function mergeVerifiedPoints(points) {
+  const merged = [...points];
+  verifiedUserPoints.forEach(point => {
+    const existingIndex = merged.findIndex(item => Math.abs(item[0] - point[0]) < .00045 && Math.abs(item[1] - point[1]) < .0007);
+    if (existingIndex >= 0) merged[existingIndex] = point;
+    else merged.push(point);
+  });
+  return merged;
+}
+
+async function loadLiveBakeries() {
+  const query = `[out:json][timeout:20];(nwr["shop"="bakery"](52.30,9.60,52.45,9.88);nwr["amenity"="cafe"]["name"~"Bäck|Back|Brot|MarktCaf",i](52.30,9.60,52.45,9.88););out center tags;`;
+  let hasCachedData = false;
+  try {
+    const cached = JSON.parse(localStorage.getItem("hannover-bakeries-v1"));
+    if (cached?.points?.length > 10 && Date.now() - cached.savedAt < 7 * 24 * 60 * 60 * 1000) {
+      bakeries = mergeVerifiedPoints(cached.points);
+      hasCachedData = true;
+      renderBakeries();
+      renderCoverage();
+      updateCandidateScores();
+      document.getElementById("pointCount").textContent = bakeries.length;
+      document.getElementById("sourceLabel").textContent = "кэш OSM + проверенные";
+      document.getElementById("mapStatus").innerHTML = "<span></span> Точки из кэша · обновляем…";
+    }
+  } catch (_) {}
+  for (const endpoint of overpassEndpoints) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {signal:controller.signal});
+      if (!response.ok) throw new Error(`OSM ${response.status}`);
+      const payload = await response.json();
+      const live = payload.elements.map(element => {
+        const coordinates = coordinatesFor(element);
+        if (!coordinates) return null;
+        return [coordinates[0], coordinates[1], element.tags?.name || element.tags?.brand || "Пекарня"];
+      }).filter(Boolean);
+      if (live.length < 10) throw new Error("OSM result is unexpectedly small");
+      bakeries = mergeVerifiedPoints(live);
+      try { localStorage.setItem("hannover-bakeries-v1", JSON.stringify({savedAt:Date.now(), points:bakeries})); } catch (_) {}
+      renderBakeries();
+      renderCoverage();
+      updateCandidateScores();
+      document.getElementById("pointCount").textContent = bakeries.length;
+      document.getElementById("sourceLabel").textContent = "OSM + проверенные";
+      document.getElementById("mapStatus").innerHTML = "<span></span> Актуальные точки загружены";
+      return;
+    } catch (_) {
+      // Try the next public Overpass endpoint, then keep the built-in fallback.
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (hasCachedData) {
+    document.getElementById("sourceLabel").textContent = "кэш OSM + проверенные";
+    document.getElementById("mapStatus").innerHTML = "<span></span> Кэш OSM · обновление недоступно";
+    return;
+  }
+  bakeries = mergeVerifiedPoints(bakeries);
+  renderBakeries();
+  renderCoverage();
+  updateCandidateScores();
+  document.getElementById("pointCount").textContent = bakeries.length;
+  document.getElementById("sourceLabel").textContent = "резервная выборка";
+  document.getElementById("mapStatus").innerHTML = "<span></span> Резервные данные · OSM недоступен";
+}
+
+async function loadResidentialBuildings() {
+  if (map.getZoom() < 15) {
+    buildingLayer.clearLayers();
+    document.getElementById("buildingCount").textContent = "—";
+    document.getElementById("buildingLabel").textContent = "видны при приближении";
+    document.getElementById("buildingStatus").textContent = "⌂ Приблизьте карту — покажем жилые дома";
+    return;
+  }
+  if (buildingRequest) buildingRequest.abort();
+  buildingRequest = new AbortController();
+  const bounds = map.getBounds();
+  const bbox = [bounds.getSouth(),bounds.getWest(),bounds.getNorth(),bounds.getEast()].map(value => value.toFixed(5)).join(",");
+  const query = `[out:json][timeout:15];way["building"~"apartments|residential|house|terrace"](${bbox});out geom;`;
+  document.getElementById("buildingStatus").textContent = "⌂ Загружаем жилые дома…";
+  for (const endpoint of overpassEndpoints) {
+    try {
+      const response = await fetch(`${endpoint}?data=${encodeURIComponent(query)}`, {signal:buildingRequest.signal});
+      if (!response.ok) throw new Error("Buildings unavailable");
+      const payload = await response.json();
+      buildingLayer.clearLayers();
+      payload.elements.slice(0,1800).forEach(building => {
+        if (!building.geometry?.length) return;
+        L.polygon(building.geometry.map(point => [point.lat,point.lon]), {color:"#536b60",weight:.7,opacity:.72,fillColor:"#a6b8aa",fillOpacity:.38,interactive:false}).addTo(buildingLayer);
+      });
+      document.getElementById("buildingCount").textContent = payload.elements.length;
+      document.getElementById("buildingLabel").textContent = "в текущем районе";
+      document.getElementById("buildingStatus").textContent = "⌂ Жилые дома из OSM";
+      return;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+    }
+  }
+  document.getElementById("buildingStatus").textContent = "⌂ Контуры домов есть на базовой карте";
+}
+
 function renderCandidates() {
+  candidateLayer.clearLayers();
+  candidateMarkers.clear();
   const list = document.getElementById("candidateList");
   list.innerHTML = candidates.map(item => `
     <button class="candidate-card" type="button" data-id="${item.id}" aria-label="Открыть зону ${item.name}, потенциал ${item.score} из 100">
@@ -75,13 +215,44 @@ function renderCandidates() {
     candidateMarkers.set(item.id, marker);
   });
 
-  list.addEventListener("click", event => {
+  list.onclick = event => {
     const card = event.target.closest(".candidate-card");
     if (!card) return;
     const item = candidates.find(candidate => candidate.id === Number(card.dataset.id));
-    map.flyTo([item.lat,item.lon], 14, {duration:.7});
+    map.flyTo([item.lat,item.lon], 15, {duration:.7});
     openCandidate(item);
+  };
+}
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const radians = value => value * Math.PI / 180;
+  const dLat = radians(lat2 - lat1);
+  const dLon = radians(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(lat1)) * Math.cos(radians(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function updateCandidateScores() {
+  candidates.forEach(item => {
+    const distances = bakeries.map(([lat,lon]) => distanceKm(item.lat,item.lon,lat,lon)).sort((a,b) => a-b);
+    item.minutes = Math.max(1, Math.round((distances[0] || 1) * 15));
+    item.competitors = distances.filter(distance => distance <= .8).length;
+    item.gap = Math.max(0, Math.round(item.population / 2200) - item.competitors);
+    const demand = Math.min(100, item.population / 45);
+    const access = Math.min(100, item.minutes * 7);
+    const scarcity = Math.max(0, 100 - item.competitors * 20);
+    item.score = Math.round(demand * .42 + access * .33 + scarcity * .25);
+    item.reason = item.minutes >= 10
+      ? "Жилой кластер остаётся за пределами комфортной прогулки до ближайшей точки."
+      : "Спрос поддерживается плотностью жителей, но ближайшие конкуренты снижают потенциал.";
+    item.factors = [
+      `${formatNumber(item.population)} жителей в радиусе анализа`,
+      `${item.competitors} ${item.competitors === 1 ? "конкурент" : "конкурентов"} в пределах 800 м`,
+      `ближайшая точка — около ${item.minutes} минут пешком`
+    ];
   });
+  candidates.sort((a,b) => b.score - a.score);
+  renderCandidates();
 }
 
 function openCandidate(item) {
@@ -127,6 +298,14 @@ document.addEventListener("keydown", event => { if (event.key === "Escape" && se
 renderCoverage();
 renderBakeries();
 renderCandidates();
+loadLiveBakeries();
+
+map.on("moveend", () => {
+  renderBakeries();
+  renderCoverage();
+  clearTimeout(buildingTimer);
+  buildingTimer = setTimeout(loadResidentialBuildings, 280);
+});
 
 window.addEventListener("load", () => setTimeout(() => map.invalidateSize(), 50));
 

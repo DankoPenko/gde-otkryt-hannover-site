@@ -29,20 +29,12 @@
       <main class="workspace">
         <aside class="sidebar" aria-label="Панель анализа">
           <section class="intro">
-            <div class="eyebrow"><span></span> Прототип · пекарни</div>
-            <h1>Где спрос выше предложения</h1>
-            <p>Выберите зону на карте и проверьте, сколько жителей остаются далеко от ближайшей пекарни.</p>
+            <div class="eyebrow"><span></span> Анализ локаций</div>
+            <h1>Пекарни · Ганновер</h1>
+            <p>Выберите зону — карта приблизится и покажет жилые дома.</p>
           </section>
 
           <section class="controls" aria-label="Настройки анализа">
-            <label class="field-label" for="categorySelect">Категория бизнеса</label>
-            <div class="select-wrap">
-              <span class="category-icon" aria-hidden="true">✦</span>
-              <select id="categorySelect" aria-label="Категория бизнеса">
-                <option>Пекарни</option>
-              </select>
-            </div>
-
             <div class="control-row">
               <span class="field-label">Комфортная прогулка</span>
               <div class="segmented" role="group" aria-label="Время пешком">
@@ -54,8 +46,8 @@
           </section>
 
           <section class="metrics" aria-label="Сводка по городу">
-            <article><span>Точек на карте</span><strong id="pointCount">24</strong><small>демо-выборка</small></article>
-            <article><span>Вне зоны доступа</span><strong id="uncoveredTotal">18,7 тыс.</strong><small id="walkLabel">при 10 мин пешком</small></article>
+            <article><span>Точек на карте</span><strong id="pointCount">25</strong><small id="sourceLabel">загрузка OSM…</small></article>
+            <article><span>Жилые дома</span><strong id="buildingCount">—</strong><small id="buildingLabel">видны при приближении</small></article>
           </section>
 
           <section class="ranked-section">
@@ -68,13 +60,14 @@
 
           <footer class="sidebar-footer">
             <span class="demo-dot"></span>
-            Данные для проверки интерфейса. Не финансовая рекомендация.
+            OSM может содержать пропуски. Пользовательские точки добавляются в проверочную выборку.
           </footer>
         </aside>
 
         <section class="map-panel" aria-label="Карта бизнес-потенциала">
           <div id="map"></div>
-          <div class="map-status" id="mapStatus"><span></span> Анализ готов</div>
+          <div class="map-status" id="mapStatus"><span></span> Загрузка точек OSM…</div>
+          <div class="building-status" id="buildingStatus">⌂ Приблизьте карту — покажем жилые дома</div>
           <div class="legend" aria-label="Легенда карты">
             <div><i class="legend-dot bakery"></i>Пекарня</div>
             <div><i class="legend-dot high"></i>Высокий потенциал</div>
@@ -113,13 +106,13 @@
       <button class="dialog-close" id="dialogClose" aria-label="Закрыть">×</button>
       <span class="dialog-kicker">Методика MVP</span>
       <h2>Потенциал, а не прогноз прибыли</h2>
-      <p>Оценка объединяет четыре сигнала: число жителей, пешую доступность существующих точек, плотность конкурентов и размер локального разрыва.</p>
+      <p>Оценка объединяет четыре сигнала: число жителей, пешую доступность существующих точек, плотность конкурентов и размер локального разрыва. Пекарни и релевантные кафе-пекарни загружаются из OpenStreetMap.</p>
       <ol>
         <li><b>Доступность:</b> считаем жителей вне выбранной зоны прогулки.</li>
         <li><b>Конкуренция:</b> снижаем балл, если рядом много похожих точек.</li>
         <li><b>Спрос:</b> повышаем балл для плотных жилых кластеров.</li>
       </ol>
-      <p class="dialog-note">Для реального решения нужно добавить население Zensus 2022, полный срез OSM, аренду и пешеходный трафик.</p>
+      <p class="dialog-note">OSM не гарантирует полноту. Для реального решения нужно сверить выдачу с Google Maps и местными каталогами, а затем добавить Zensus 2022, аренду и пешеходный трафик.</p>
     </dialog>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
