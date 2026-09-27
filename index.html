@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0b1916" />
+    <meta name="description" content="MVP-карта потенциала для поиска районов Ганновера с недостаточной доступностью пекарен." />
+    <title>Где открыть — карта потенциала Ганновера</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1916'/%3E%3Cpath d='M32 11c-9.4 0-17 7.2-17 16.1C15 39.6 32 54 32 54s17-14.4 17-26.9C49 18.2 41.4 11 32 11Z' fill='%23efcc68'/%3E%3Ccircle cx='32' cy='28' r='7' fill='%230b1916'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link rel="preconnect" href="https://tile.openstreetmap.org" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="Где открыть — на главную">
+          <span class="brand-mark" aria-hidden="true"><span></span></span>
+          <span>Где открыть</span>
+        </a>
+        <div class="city-pill" aria-label="Выбранный город">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.8 7-12A7 7 0 1 0 5 9c0 6.2 7 12 7 12Zm0-9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
+          Ганновер
+        </div>
+        <button class="info-button" id="methodButton" type="button" aria-label="О методике">Как считается</button>
+      </header>
+
+      <main class="workspace">
+        <aside class="sidebar" aria-label="Панель анализа">
+          <section class="intro">
+            <div class="eyebrow"><span></span> Прототип · пекарни</div>
+            <h1>Где спрос выше предложения</h1>
+            <p>Выберите зону на карте и проверьте, сколько жителей остаются далеко от ближайшей пекарни.</p>
+          </section>
+
+          <section class="controls" aria-label="Настройки анализа">
+            <label class="field-label" for="categorySelect">Категория бизнеса</label>
+            <div class="select-wrap">
+              <span class="category-icon" aria-hidden="true">✦</span>
+              <select id="categorySelect" aria-label="Категория бизнеса">
+                <option>Пекарни</option>
+              </select>
+            </div>
+
+            <div class="control-row">
+              <span class="field-label">Комфортная прогулка</span>
+              <div class="segmented" role="group" aria-label="Время пешком">
+                <button type="button" data-minutes="5">5 мин</button>
+                <button type="button" data-minutes="10" class="active">10 мин</button>
+                <button type="button" data-minutes="15">15 мин</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="metrics" aria-label="Сводка по городу">
+            <article><span>Точек на карте</span><strong id="pointCount">24</strong><small>демо-выборка</small></article>
+            <article><span>Вне зоны доступа</span><strong id="uncoveredTotal">18,7 тыс.</strong><small id="walkLabel">при 10 мин пешком</small></article>
+          </section>
+
+          <section class="ranked-section">
+            <div class="section-heading">
+              <div><span class="field-label">Лучшие зоны</span><small>по потенциалу</small></div>
+              <span class="count-badge" id="candidateCount">6</span>
+            </div>
+            <div class="candidate-list" id="candidateList"></div>
+          </section>
+
+          <footer class="sidebar-footer">
+            <span class="demo-dot"></span>
+            Данные для проверки интерфейса. Не финансовая рекомендация.
+          </footer>
+        </aside>
+
+        <section class="map-panel" aria-label="Карта бизнес-потенциала">
+          <div id="map"></div>
+          <div class="map-status" id="mapStatus"><span></span> Анализ готов</div>
+          <div class="legend" aria-label="Легенда карты">
+            <div><i class="legend-dot bakery"></i>Пекарня</div>
+            <div><i class="legend-dot high"></i>Высокий потенциал</div>
+            <div><i class="legend-dot medium"></i>Средний</div>
+          </div>
+          <button class="mobile-results" id="mobileResults" type="button">Показать 6 лучших зон</button>
+        </section>
+      </main>
+    </div>
+
+    <div class="drawer-backdrop" id="drawerBackdrop"></div>
+    <aside class="detail-drawer" id="detailDrawer" aria-hidden="true" aria-labelledby="detailTitle">
+      <button class="drawer-close" id="drawerClose" type="button" aria-label="Закрыть">×</button>
+      <div class="drawer-grip" aria-hidden="true"></div>
+      <span class="score-label">Потенциал зоны</span>
+      <div class="drawer-score-row">
+        <strong id="detailScore">89</strong><span>/100</span>
+        <span class="score-chip" id="detailLevel">высокий</span>
+      </div>
+      <h2 id="detailTitle">Mühlenberg · центр</h2>
+      <p id="detailReason">Крупный жилой кластер и мало точек в комфортной пешей доступности.</p>
+      <div class="detail-grid">
+        <div><span>Жителей рядом</span><strong id="detailPopulation">4 800</strong></div>
+        <div><span>Ближайшая точка</span><strong id="detailDistance">14 мин</strong></div>
+        <div><span>Конкурентов</span><strong id="detailCompetitors">1</strong></div>
+        <div><span>Нехватка</span><strong id="detailGap">≈ 2 точки</strong></div>
+      </div>
+      <div class="why-box">
+        <strong>Почему зона в рейтинге</strong>
+        <ul id="detailFactors"></ul>
+      </div>
+      <p class="confidence"><span></span> Предварительная оценка · требует проверки аренды и трафика</p>
+    </aside>
+
+    <dialog id="methodDialog">
+      <button class="dialog-close" id="dialogClose" aria-label="Закрыть">×</button>
+      <span class="dialog-kicker">Методика MVP</span>
+      <h2>Потенциал, а не прогноз прибыли</h2>
+      <p>Оценка объединяет четыре сигнала: число жителей, пешую доступность существующих точек, плотность конкурентов и размер локального разрыва.</p>
+      <ol>
+        <li><b>Доступность:</b> считаем жителей вне выбранной зоны прогулки.</li>
+        <li><b>Конкуренция:</b> снижаем балл, если рядом много похожих точек.</li>
+        <li><b>Спрос:</b> повышаем балл для плотных жилых кластеров.</li>
+      </ol>
+      <p class="dialog-note">Для реального решения нужно добавить население Zensus 2022, полный срез OSM, аренду и пешеходный трафик.</p>
+    </dialog>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
