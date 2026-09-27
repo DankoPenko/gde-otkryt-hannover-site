@@ -37,8 +37,8 @@ const map = new maplibregl.Map({
   style:"https://tiles.openfreemap.org/styles/liberty",
   center:[9.7386,52.3745],
   zoom:11.55,
-  pitch:38,
-  bearing:-8,
+  pitch:18,
+  bearing:0,
   minZoom:10.5,
   maxZoom:18,
   maxPitch:62,
@@ -76,6 +76,25 @@ function safeLayout(id,property,value) {
   try { map.setLayoutProperty(id,property,value); } catch (_) {}
 }
 
+function registerBuildingPatterns() {
+  if (map.hasImage("roof-tiles")) return;
+  const canvas=document.createElement("canvas");
+  canvas.width=32; canvas.height=32;
+  const context=canvas.getContext("2d");
+  context.fillStyle="#efbd8c";
+  context.fillRect(0,0,32,32);
+  context.fillStyle="#f7d3a4";
+  context.fillRect(0,0,16,8);
+  context.fillRect(16,16,16,8);
+  context.strokeStyle="#c98468";
+  context.lineWidth=2;
+  for(let y=0;y<=32;y+=8){context.beginPath();context.moveTo(0,y);context.lineTo(32,y);context.stroke();}
+  for(let y=0;y<32;y+=16){
+    for(let x=-8;x<40;x+=16){context.beginPath();context.moveTo(x,y);context.lineTo(x+8,y+8);context.lineTo(x+16,y);context.stroke();}
+  }
+  map.addImage("roof-tiles",context.getImageData(0,0,32,32),{pixelRatio:2});
+}
+
 function styleCartoonMap() {
   safePaint("background","background-color","#f6e8be");
   safePaint("park","fill-color","#9edc7d");
@@ -102,9 +121,11 @@ function styleCartoonMap() {
   safePaint("building","fill-color","#f0bf91");
   safePaint("building","fill-outline-color","#9c765d");
   safePaint("building","fill-opacity",.92);
+  safePaint("building","fill-pattern","roof-tiles");
+  try { map.setLayerZoomRange("building",13,14.2); } catch (_) {}
   safeLayout("building-3d","visibility","visible");
-  safePaint("building-3d","fill-extrusion-color",["interpolate",["linear"],["get","render_height"],0,"#ffd5a4",30,"#f1ad82",100,"#df8b74"]);
-  safePaint("building-3d","fill-extrusion-opacity",.96);
+  safePaint("building-3d","fill-extrusion-color",["interpolate",["linear"],["get","render_height"],0,"#f8d6a6",8,"#efb985",18,"#e7a17c",35,"#ce8b79",80,"#b87f77"]);
+  safePaint("building-3d","fill-extrusion-opacity",.95);
   ["poi_r20","poi_r7","poi_r1","poi_transit","road_one_way_arrow","road_one_way_arrow_opposite","highway-name-path","highway-name-minor","highway-shield-non-us","highway-shield-us-interstate","road_shield_us","boundary_3","boundary_2","boundary_disputed"].forEach(id => safeLayout(id,"visibility","none"));
   ["highway-name-major","label_other","label_village","label_town","label_city","label_city_capital"].forEach(id => {
     safePaint(id,"text-color","#314d43");
@@ -220,7 +241,7 @@ function updateCandidateScores() {
 
 function openCandidate(item,focusMap=false) {
   selectedCandidate = item;
-  if (focusMap && mapReady) map.easeTo({center:[item.lon,item.lat],zoom:15.4,pitch:52,bearing:-18,duration:900});
+  if (focusMap && mapReady) map.easeTo({center:[item.lon,item.lat],zoom:15.4,pitch:34,bearing:-8,duration:900});
   document.querySelectorAll(".candidate-card").forEach(card=>card.classList.toggle("active",Number(card.dataset.id)===item.id));
   document.getElementById("detailScore").textContent=item.score;
   document.getElementById("detailLevel").textContent=item.score>=80?"высокий":"средний";
@@ -298,14 +319,15 @@ async function loadLiveBakeries() {
 }
 
 function updateBuildingStatus() {
-  const is3d=map.getZoom()>=15;
-  document.getElementById("buildingCount").textContent=is3d?"3D":"2D";
-  document.getElementById("buildingLabel").textContent=is3d?"дома в районе":"вид сверху";
-  document.getElementById("buildingStatus").textContent=is3d?"⌂ Объёмные дома из OSM":"⌂ Приблизьте — домики станут объёмными";
+  const detailed=map.getZoom()>=14;
+  document.getElementById("buildingCount").textContent=detailed?"3D":"крыши";
+  document.getElementById("buildingLabel").textContent=detailed?"объёмные дома":"текстуры кварталов";
+  document.getElementById("buildingStatus").textContent=detailed?"⌂ Лёгкий наклон · объёмные дома":"⌂ Лёгкий наклон · текстурные крыши";
 }
 
 map.on("load",()=>{
   mapReady=true;
+  registerBuildingPatterns();
   styleCartoonMap();
   map.addSource("potential",{type:"geojson",data:featureCollection()});
   map.addLayer({id:"potential-fill",type:"fill",source:"potential",paint:{"fill-color":["get","color"],"fill-opacity":.22}});

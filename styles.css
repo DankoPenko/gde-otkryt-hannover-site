@@ -75,9 +75,10 @@ h1 { margin: 10px 0 6px; font-size: 1.48rem; line-height: 1.08; letter-spacing: 
 .legend-dot.bakery { background: var(--gold); }
 .legend-dot.high { background: var(--peach); }
 .legend-dot.medium { background: var(--lime); }
-.bakery-pin { width: 28px; height: 32px; display: grid; place-items: center; border-radius: 12px 12px 14px 5px; background: var(--gold); border: 3px solid var(--forest); transform: rotate(45deg); box-shadow: 0 5px 0 rgba(23,63,55,.28); cursor: pointer; }
-.bakery-pin span { transform: rotate(-45deg); font-size: 14px; line-height: 1; }
-.cluster-marker { min-width: 38px; height: 38px; padding: 0 7px; display: grid; place-items: center; border-radius: 14px; background: var(--forest); color: #fff; border: 3px solid var(--gold); box-shadow: 0 5px 0 rgba(23,63,55,.28); font-size: .76rem; font-weight: 950; cursor: pointer; transform: rotate(-3deg); }
+.bakery-pin { position: relative; width: 34px; height: 36px; display: grid; place-items: center; border-radius: 12px 12px 9px 9px; background: repeating-linear-gradient(90deg,#fff1b5 0 6px,#f18b66 6px 12px); border: 3px solid var(--forest); box-shadow: 0 5px 0 rgba(23,63,55,.28); cursor: pointer; }
+.bakery-pin::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 8px; border-radius: 3px; background: #78bda5; border-top: 2px solid var(--forest); }
+.bakery-pin span { position: relative; z-index: 1; transform: translateY(-4px); font-size: 15px; line-height: 1; filter: drop-shadow(0 1px 0 #fff7d2); }
+.cluster-marker { min-width: 38px; height: 38px; padding: 0 7px; display: grid; place-items: center; border-radius: 14px; background: repeating-linear-gradient(135deg,#173f37 0 7px,#27594d 7px 14px); color: #fff; border: 3px solid var(--gold); box-shadow: 0 5px 0 rgba(23,63,55,.28); font-size: .76rem; font-weight: 950; cursor: pointer; transform: rotate(-3deg); }
 .potential-marker { position: relative; width: 48px; height: 48px; border-radius: 17px; display: grid; place-items: center; color: var(--forest); font-size: .82rem; font-weight: 950; background: var(--potential); border: 4px solid #fff8d8; outline: 3px solid var(--forest); box-shadow: 0 7px 0 rgba(23,63,55,.24), 0 12px 24px rgba(23,63,55,.16); cursor: pointer; transition: transform .15s; transform: rotate(4deg); }
 .potential-marker::after { content: "★"; position: absolute; top: -12px; right: -10px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--forest); color: var(--gold); border: 2px solid #fff8d8; font-size: 10px; }
 .potential-marker:hover { transform: rotate(0) scale(1.08); }
