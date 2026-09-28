@@ -41,14 +41,14 @@ const map = new maplibregl.Map({
   bearing:0,
   minZoom:10.5,
   maxZoom:18,
-  maxPitch:62,
+  maxPitch:30,
   attributionControl:true,
   canvasContextAttributes:{antialias:true}
 });
 map.addControl(new maplibregl.NavigationControl({showCompass:true,visualizePitch:true}),"top-right");
 
 function formatNumber(value) { return new Intl.NumberFormat("ru-RU").format(value); }
-function scoreColor(score) { return score >= 80 ? "#f39a70" : score >= 70 ? "#f4c857" : "#d8ef72"; }
+function scoreColor(score) { return score >= 80 ? "#9dd9c5" : score >= 70 ? "#a9cee9" : "#d2dbdf"; }
 function distanceKm(lat1,lon1,lat2,lon2) {
   const rad = value => value * Math.PI / 180;
   const dLat = rad(lat2-lat1), dLon = rad(lon2-lon1);
@@ -81,58 +81,103 @@ function registerBuildingPatterns() {
   const canvas=document.createElement("canvas");
   canvas.width=32; canvas.height=32;
   const context=canvas.getContext("2d");
-  context.fillStyle="#efbd8c";
+  context.fillStyle="#a3afb9";
   context.fillRect(0,0,32,32);
-  context.fillStyle="#f7d3a4";
+  context.fillStyle="#c2cbd2";
   context.fillRect(0,0,16,8);
   context.fillRect(16,16,16,8);
-  context.strokeStyle="#c98468";
+  context.strokeStyle="#8998a4";
   context.lineWidth=2;
   for(let y=0;y<=32;y+=8){context.beginPath();context.moveTo(0,y);context.lineTo(32,y);context.stroke();}
   for(let y=0;y<32;y+=16){
     for(let x=-8;x<40;x+=16){context.beginPath();context.moveTo(x,y);context.lineTo(x+8,y+8);context.lineTo(x+16,y);context.stroke();}
   }
   map.addImage("roof-tiles",context.getImageData(0,0,32,32),{pixelRatio:2});
+  // Separate facade and roof materials keep windows off the roof surface.
+  const materials=[
+    {name:"clay",wall:"#e3e9ed",brick:"#c5d1d9",roof:"#7d929f",tile:"#a9bac4"},
+    {name:"ivory",wall:"#f1f3f3",brick:"#d2dbdb",roof:"#73978f",tile:"#9bb9ae"},
+    {name:"rose",wall:"#dadfe9",brick:"#bac6d5",roof:"#8692ac",tile:"#abb7cc"}
+  ];
+  canvas.width=64; canvas.height=64;
+  materials.forEach(material=>{
+    context.fillStyle=material.wall; context.fillRect(0,0,64,64);
+    context.strokeStyle=material.brick; context.lineWidth=1;
+    for(let y=0;y<64;y+=8){
+      context.beginPath(); context.moveTo(0,y+.5); context.lineTo(64,y+.5); context.stroke();
+      for(let x=(y%16?8:0);x<64;x+=16)context.fillRect(x,y,1,8);
+    }
+    for(let y=7;y<64;y+=32)for(let x=9;x<64;x+=32){
+      context.fillStyle="#ffffff";context.fillRect(x-2,y-2,16,20);
+      context.fillStyle="#547783";context.fillRect(x,y,12,15);
+      context.fillStyle="#a7c5ca";context.fillRect(x+1,y+1,5,6);
+      context.fillStyle=material.wall;context.fillRect(x+5,y,2,15);
+      context.fillRect(x,y+7,12,2);
+      context.fillStyle=material.brick;context.fillRect(x-2,y+16,16,2);
+    }
+    map.addImage(`facade-${material.name}`,context.getImageData(0,0,64,64),{pixelRatio:2});
+    context.fillStyle=material.roof;context.fillRect(0,0,64,64);
+    for(let y=0;y<64;y+=8)for(let x=-8;x<64;x+=16){
+      const offset=y%16?8:0;
+      context.fillStyle=material.tile;context.fillRect(x+offset+1,y+1,14,2);
+      context.fillStyle="rgba(43,48,48,.14)";context.fillRect(x+offset,y+7,16,1);
+      context.fillRect(x+offset,y,1,8);
+    }
+    map.addImage(`roof-${material.name}`,context.getImageData(0,0,64,64),{pixelRatio:2});
+  });
 }
 
 function styleCartoonMap() {
-  safePaint("background","background-color","#f6e8be");
-  safePaint("park","fill-color","#9edc7d");
+  safePaint("background","background-color","#f0f3f5");
+  safePaint("park","fill-color","#b7d9bd");
   safePaint("park","fill-opacity",.92);
   safePaint("park_outline","line-color","#5f9360");
   safePaint("park_outline","line-width",2);
-  safePaint("landuse_residential","fill-color","#f7dfad");
+  safePaint("landuse_residential","fill-color","#e8eef0");
   safePaint("landuse_residential","fill-opacity",.76);
-  safePaint("landcover_wood","fill-color","#82c779");
-  safePaint("landcover_grass","fill-color","#b9e38d");
+  safePaint("landcover_wood","fill-color","#a1cbb3");
+  safePaint("landcover_grass","fill-color","#d1e5d3");
   safePaint("landcover_wetland","fill-color","#9dd7b0");
-  safePaint("landcover_sand","fill-color","#f3d68a");
+  safePaint("landcover_sand","fill-color","#e0e5e7");
   safePaint("landuse_pitch","fill-color","#8ed394");
   safePaint("landuse_cemetery","fill-color","#b0d795");
   safePaint("landuse_hospital","fill-color","#f3b7b1");
-  safePaint("landuse_school","fill-color","#f6cf86");
+  safePaint("landuse_school","fill-color","#dce3ef");
   safePaint("water","fill-color","#7bcbe8");
   ["waterway_river","waterway_other"].forEach(id => safePaint(id,"line-color","#69b9dc"));
-  ["road_minor","road_service_track","road_link","tunnel_minor","bridge_street"].forEach(id => safePaint(id,"line-color","#fff7db"));
-  ["road_secondary_tertiary","bridge_secondary_tertiary"].forEach(id => safePaint(id,"line-color","#ffe1a0"));
-  ["road_trunk_primary","bridge_trunk_primary"].forEach(id => safePaint(id,"line-color","#f7ad77"));
-  ["road_motorway","bridge_motorway"].forEach(id => safePaint(id,"line-color","#ef8f6f"));
-  map.getStyle().layers.filter(layer => layer.id.includes("casing")).forEach(layer => safePaint(layer.id,"line-color","#8c7861"));
+  map.getStyle().layers.forEach(layer=>{
+    if(layer.type==="fill"&&/farmland|farmyard|industrial|commercial|retail|construction/.test(layer.id))safePaint(layer.id,"fill-color","#e1e9e4");
+    if(layer.type==="line"&&/road|bridge|tunnel/.test(layer.id)){
+      safePaint(layer.id,"line-color",layer.id.includes("casing")?"#cbd6db":"#ffffff");
+    }
+  });
   safePaint("building","fill-color","#f0bf91");
   safePaint("building","fill-outline-color","#9c765d");
   safePaint("building","fill-opacity",.92);
   safePaint("building","fill-pattern","roof-tiles");
-  try { map.setLayerZoomRange("building",13,14.2); } catch (_) {}
+  map.setLayerZoomRange("building",13,14);
   safeLayout("building-3d","visibility","visible");
-  safePaint("building-3d","fill-extrusion-color",["interpolate",["linear"],["get","render_height"],0,"#f8d6a6",8,"#efb985",18,"#e7a17c",35,"#ce8b79",80,"#b87f77"]);
-  safePaint("building-3d","fill-extrusion-opacity",.95);
+  const height=["max",3,["coalesce",["get","render_height"],6]];
+  const variation=["%",["floor",height],3];
+  const material=prefix=>["match",variation,0,`${prefix}-clay`,1,`${prefix}-ivory`,`${prefix}-rose`];
+  safePaint("building-3d","fill-extrusion-height",height);
+  safePaint("building-3d","fill-extrusion-base",["coalesce",["get","render_min_height"],0]);
+  safePaint("building-3d","fill-extrusion-pattern",material("facade"));
+  safePaint("building-3d","fill-extrusion-opacity",1);
+  const building=map.getLayer("building-3d");
+  if(building&&!map.getLayer("building-roofs")){
+    const layers=map.getStyle().layers;
+    const next=layers[layers.findIndex(layer=>layer.id==="building-3d")+1]?.id;
+    map.addLayer({id:"building-roofs",type:"fill-extrusion",source:building.source,"source-layer":building.sourceLayer,minzoom:14,
+      paint:{"fill-extrusion-height":["+",height,.12],"fill-extrusion-base":height,"fill-extrusion-pattern":material("roof"),"fill-extrusion-opacity":1}},next);
+  }
   ["poi_r20","poi_r7","poi_r1","poi_transit","road_one_way_arrow","road_one_way_arrow_opposite","highway-name-path","highway-name-minor","highway-shield-non-us","highway-shield-us-interstate","road_shield_us","boundary_3","boundary_2","boundary_disputed"].forEach(id => safeLayout(id,"visibility","none"));
   ["highway-name-major","label_other","label_village","label_town","label_city","label_city_capital"].forEach(id => {
     safePaint(id,"text-color","#314d43");
-    safePaint(id,"text-halo-color","#fff4cf");
+    safePaint(id,"text-halo-color","#ffffff");
     safePaint(id,"text-halo-width",2);
   });
-  try { map.setLight({anchor:"viewport",color:"#fff3cf",intensity:.55,position:[1.15,210,35]}); } catch (_) {}
+  map.setLight({anchor:"viewport",color:"#ffffff",intensity:.36,position:[1.15,210,40]});
 }
 
 function renderCoverage() {
@@ -151,32 +196,6 @@ function clearMarkers(markers) { markers.forEach(marker => marker.remove()); mar
 function renderBakeries() {
   if (!mapReady) return;
   clearMarkers(bakeryMarkers);
-  const zoom = map.getZoom();
-  if (zoom < 14) {
-    const cellSize = zoom <= 12 ? .035 : .018;
-    const groups = new Map();
-    bakeries.forEach(point => {
-      const key = `${Math.round(point[0]/cellSize)}:${Math.round(point[1]/cellSize)}`;
-      if (!groups.has(key)) groups.set(key,[]);
-      groups.get(key).push(point);
-    });
-    groups.forEach(points => {
-      const lat = points.reduce((sum,p)=>sum+p[0],0)/points.length;
-      const lon = points.reduce((sum,p)=>sum+p[1],0)/points.length;
-      if (points.length === 1) {
-        bakeryMarkers.push(createBakeryMarker(points[0]));
-        return;
-      }
-      const element = document.createElement("button");
-      element.type = "button";
-      element.className = "cluster-marker";
-      element.textContent = points.length;
-      element.setAttribute("aria-label",`${points.length} пекарен`);
-      element.addEventListener("click",() => map.easeTo({center:[lon,lat],zoom:Math.min(15,zoom+2),duration:700}));
-      bakeryMarkers.push(new maplibregl.Marker({element,anchor:"center"}).setLngLat([lon,lat]).addTo(map));
-    });
-    return;
-  }
   const bounds = map.getBounds();
   bakeries.filter(([lat,lon])=>bounds.contains([lon,lat])).forEach(point => bakeryMarkers.push(createBakeryMarker(point)));
 }
@@ -184,11 +203,71 @@ function renderBakeries() {
 function createBakeryMarker([lat,lon,name]) {
   const element = document.createElement("button");
   element.type = "button";
-  element.className = "bakery-pin";
-  element.innerHTML = "<span>🥐</span>";
+  element.className = "bakery-dot";
+  element.classList.toggle("detailed",map.getZoom()>=14);
   element.setAttribute("aria-label",name);
-  const popup = new maplibregl.Popup({offset:22,closeButton:false}).setHTML(`<strong>${name}</strong><br><span style="color:#6d7f76">Пекарня или кафе-пекарня</span>`);
-  return new maplibregl.Marker({element,anchor:"bottom"}).setLngLat([lon,lat]).setPopup(popup).addTo(map);
+  const content=document.createElement("div");
+  const title=document.createElement("strong");title.textContent=name;
+  const description=document.createElement("p");description.textContent="Пекарня или кафе-пекарня";
+  content.append(title,description);
+  const popup = new maplibregl.Popup({offset:22,closeButton:false}).setDOMContent(content);
+  const preview=()=>{
+    const building=findBuildingForBakery([lat,lon,name]);
+    highlightBuilding(building);
+  };
+  element.addEventListener("mouseenter",preview);
+  element.addEventListener("focus",preview);
+  element.addEventListener("mouseleave",clearBuildingHighlight);
+  element.addEventListener("blur",clearBuildingHighlight);
+  element.addEventListener("click",preview);
+  return new maplibregl.Marker({element,anchor:"center"}).setLngLat([lon,lat]).setPopup(popup).addTo(map);
+}
+
+const buildingPopup=new maplibregl.Popup({closeButton:false,offset:14});
+let highlightedBuildingKey=null;
+function findBuildingForBakery(point) {
+  if(!mapReady||map.getZoom()<14)return null;
+  const features=map.querySourceFeatures("openmaptiles",{sourceLayer:"building"});
+  for(const feature of features){
+    const geometry=BuildingMatch.componentAt(feature.geometry,[point[1],point[0]]);
+    if(geometry)return {geometry,properties:feature.properties};
+  }
+  return null;
+}
+function highlightBuilding(feature) {
+  const source=map.getSource("bakery-building-highlight");
+  if(!source)return;
+  if(!feature){clearBuildingHighlight();return;}
+  const key=JSON.stringify(feature.geometry);
+  if(key===highlightedBuildingKey)return;
+  highlightedBuildingKey=key;
+  source.setData(featureCollection([{type:"Feature",geometry:feature.geometry,properties:{
+    height:Math.max(3,Number(feature.properties.render_height)||6)+.25,
+    base:Number(feature.properties.render_min_height)||0
+  }}]));
+}
+function clearBuildingHighlight() {
+  if(highlightedBuildingKey!==null){
+    map.getSource("bakery-building-highlight")?.setData(featureCollection());
+    highlightedBuildingKey=null;
+  }
+  buildingPopup.remove();
+  map.getCanvas().style.cursor="";
+}
+function inspectBakeryBuilding(event) {
+  if(!mapReady||map.getZoom()<14||map.isMoving())return;
+  const rendered=map.queryRenderedFeatures(event.point,{layers:["building-3d","building-roofs"]})[0];
+  // Vector tiles may merge hundreds of separate houses into one MultiPolygon.
+  // Select the polygon under the pointer before matching any bakery.
+  const geometry=rendered&&BuildingMatch.componentAt(rendered.geometry,[event.lngLat.lng,event.lngLat.lat]);
+  const feature=geometry?{geometry,properties:rendered.properties}:null;
+  const matches=feature?bakeries.filter(([lat,lon])=>BuildingMatch.contains(feature.geometry,[lon,lat])):[];
+  if(!matches.length){clearBuildingHighlight();return;}
+  highlightBuilding(feature);
+  map.getCanvas().style.cursor="pointer";
+  const content=document.createElement("div");
+  matches.forEach(point=>{const name=document.createElement("strong");name.textContent=point[2];content.append(name,document.createElement("br"));});
+  buildingPopup.setLngLat(event.lngLat).setDOMContent(content).addTo(map);
 }
 
 function renderCandidates() {
@@ -237,14 +316,24 @@ function updateCandidateScores() {
   });
   candidates.sort((a,b)=>b.score-a.score);
   renderCandidates();
+  if(selectedCandidate)openCandidate(selectedCandidate);
 }
 
 function openCandidate(item,focusMap=false) {
   selectedCandidate = item;
-  if (focusMap && mapReady) map.easeTo({center:[item.lon,item.lat],zoom:15.4,pitch:34,bearing:-8,duration:900});
+  document.querySelector(".sidebar").classList.remove("mobile-open");
+  document.getElementById("mobileResults").setAttribute("aria-expanded","false");
+  document.getElementById("mobileResults").textContent="Показать 6 лучших зон";
+  const drawer=document.getElementById("detailDrawer");
+  drawer.inert=false;
+  if (focusMap && mapReady) {
+    const mobile=window.matchMedia("(max-width: 820px)").matches;
+    const offset=mobile?[0,-Math.min(window.innerHeight*.23,170)]:[-185,0];
+    map.easeTo({center:[item.lon,item.lat],zoom:16.1,pitch:18,bearing:0,offset,duration:650});
+  }
   document.querySelectorAll(".candidate-card").forEach(card=>card.classList.toggle("active",Number(card.dataset.id)===item.id));
   document.getElementById("detailScore").textContent=item.score;
-  document.getElementById("detailLevel").textContent=item.score>=80?"высокий":"средний";
+  document.getElementById("detailLevel").textContent=item.score>=80?"высокий":item.score>=70?"средний":"умеренный";
   document.getElementById("detailTitle").textContent=item.name;
   document.getElementById("detailReason").textContent=item.reason || "Жилой кластер с потенциалом для новой точки.";
   document.getElementById("detailPopulation").textContent=formatNumber(item.population);
@@ -259,6 +348,7 @@ function openCandidate(item,focusMap=false) {
 function closeDrawer() {
   document.getElementById("detailDrawer").classList.remove("open");
   document.getElementById("detailDrawer").setAttribute("aria-hidden","true");
+  document.getElementById("detailDrawer").inert=true;
   document.getElementById("drawerBackdrop").classList.remove("open");
   document.querySelectorAll(".candidate-card").forEach(card=>card.classList.remove("active"));
   selectedCandidate=null;
@@ -312,7 +402,7 @@ async function loadLiveBakeries() {
     } catch (_) {} finally { clearTimeout(timer); }
   }
   if(cached?.points?.length>10) {
-    document.getElementById("mapStatus").innerHTML="<span></span> Кэш OSM · обновление недоступно";
+    applyBakeryData(cached.points,"сохранённые данные OSM","Сохранённые точки · обновление недоступно");
     return;
   }
   applyBakeryData(bakeries,"резервная выборка","Резервные данные · OSM недоступен");
@@ -322,19 +412,23 @@ function updateBuildingStatus() {
   const detailed=map.getZoom()>=14;
   document.getElementById("buildingCount").textContent=detailed?"3D":"крыши";
   document.getElementById("buildingLabel").textContent=detailed?"объёмные дома":"текстуры кварталов";
-  document.getElementById("buildingStatus").textContent=detailed?"⌂ Лёгкий наклон · объёмные дома":"⌂ Лёгкий наклон · текстурные крыши";
+  document.getElementById("buildingStatus").textContent=detailed?"3D · здания":"Приблизьте, чтобы увидеть дома";
 }
 
 map.on("load",()=>{
   mapReady=true;
   registerBuildingPatterns();
   styleCartoonMap();
+  map.addSource("bakery-building-highlight",{type:"geojson",data:featureCollection()});
+  map.addLayer({id:"bakery-building-highlight",type:"fill-extrusion",source:"bakery-building-highlight",minzoom:14,
+    paint:{"fill-extrusion-height":["get","height"],"fill-extrusion-base":["get","base"],"fill-extrusion-color":"#36cbb0","fill-extrusion-opacity":.65}});
   map.addSource("potential",{type:"geojson",data:featureCollection()});
-  map.addLayer({id:"potential-fill",type:"fill",source:"potential",paint:{"fill-color":["get","color"],"fill-opacity":.22}});
-  map.addLayer({id:"potential-outline",type:"line",source:"potential",paint:{"line-color":["get","color"],"line-width":3,"line-opacity":.86}});
+  const beforeBuildings=map.getLayer("building")?"building":undefined;
+  map.addLayer({id:"potential-fill",type:"fill",source:"potential",paint:{"fill-color":["get","color"],"fill-opacity":.1}},beforeBuildings);
+  map.addLayer({id:"potential-outline",type:"line",source:"potential",paint:{"line-color":["get","color"],"line-width":2,"line-opacity":.55,"line-dasharray":[3,3]}},beforeBuildings);
   map.addSource("coverage",{type:"geojson",data:featureCollection()});
-  map.addLayer({id:"coverage-fill",type:"fill",source:"coverage",paint:{"fill-color":"#65b9a1","fill-opacity":.1}});
-  map.addLayer({id:"coverage-outline",type:"line",source:"coverage",paint:{"line-color":"#438e7a","line-width":1.5,"line-opacity":.35}});
+  map.addLayer({id:"coverage-fill",type:"fill",source:"coverage",paint:{"fill-color":"#65b9a1","fill-opacity":.035}},beforeBuildings);
+  map.addLayer({id:"coverage-outline",type:"line",source:"coverage",paint:{"line-color":"#438e7a","line-width":1,"line-opacity":.2}},beforeBuildings);
   renderCandidates();
   renderBakeries();
   renderCoverage();
@@ -342,6 +436,9 @@ map.on("load",()=>{
   loadLiveBakeries();
 });
 map.on("moveend",()=>{ renderBakeries(); renderCoverage(); updateBuildingStatus(); });
+map.on("mousemove",inspectBakeryBuilding);
+map.on("movestart",clearBuildingHighlight);
+map.getCanvas().addEventListener("mouseleave",clearBuildingHighlight);
 map.on("error",event=>{ if(!mapReady) document.getElementById("mapStatus").innerHTML="<span></span> Карта временно недоступна"; });
 
 document.querySelectorAll("[data-minutes]").forEach(button=>button.addEventListener("click",()=>{
@@ -351,7 +448,12 @@ document.querySelectorAll("[data-minutes]").forEach(button=>button.addEventListe
 }));
 document.getElementById("drawerClose").addEventListener("click",closeDrawer);
 document.getElementById("drawerBackdrop").addEventListener("click",closeDrawer);
-document.getElementById("mobileResults").addEventListener("click",()=>openCandidate(candidates[0],true));
+document.getElementById("mobileResults").addEventListener("click",()=>{
+  closeDrawer();
+  const open=document.querySelector(".sidebar").classList.toggle("mobile-open");
+  document.getElementById("mobileResults").setAttribute("aria-expanded",String(open));
+  document.getElementById("mobileResults").textContent=open?"Вернуться к карте":"Показать 6 лучших зон";
+});
 const methodDialog=document.getElementById("methodDialog");
 document.getElementById("methodButton").addEventListener("click",()=>methodDialog.showModal());
 document.getElementById("dialogClose").addEventListener("click",()=>methodDialog.close());
