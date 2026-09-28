@@ -1,14 +1,4 @@
-let bakeries = [
-  [52.3759,9.7320,"BackWerk Kröpcke"],[52.3745,9.7380,"Ditsch Hauptbahnhof"],[52.3705,9.7350,"Bäckerei am Aegi"],
-  [52.3812,9.7177,"Linden Brot"],[52.3685,9.7140,"Calenberger Backstube"],[52.3600,9.7182,"Südstadt Bäckerei"],
-  [52.3890,9.7356,"Nordstadt Backhaus"],[52.3978,9.7420,"Vahrenwalder Bäcker"],[52.4045,9.7650,"List Brot"],
-  [52.3890,9.7610,"Lister Meile Bäckerei"],[52.3758,9.7720,"Kleefelder Backstube"],[52.3600,9.7700,"Bult Bäckerei"],
-  [52.3508,9.7330,"Döhrener Brot"],[52.3415,9.7470,"Wülfeler Backhaus"],[52.3650,9.6900,"Linden-Mitte Bäckerei"],
-  [52.3735,9.6810,"Limmer Brot"],[52.3980,9.6870,"Stöckener Backstube"],[52.4140,9.7100,"Hainholz Bäcker"],
-  [52.4170,9.8040,"Bothfelder Backhaus"],[52.3900,9.8230,"Misburger Bäckerei"],[52.3540,9.8060,"Kirchroder Brot"],
-  [52.3320,9.7000,"Ricklinger Backstube"],[52.3300,9.7800,"Mittelfelder Bäcker"],[52.3860,9.7020,"Bäckerei am Küchengarten"],
-  [52.3937336,9.6845368,"Rautes MarktCafé Herrenhausen"]
-];
+let bakeries = [];
 
 const verifiedUserPoints = [[52.3937336,9.6845368,"Rautes MarktCafé Herrenhausen"]];
 const candidates = [
@@ -206,21 +196,20 @@ function createBakeryMarker([lat,lon,name]) {
   element.className = "bakery-dot";
   element.classList.toggle("detailed",map.getZoom()>=14);
   element.setAttribute("aria-label",name);
-  const content=document.createElement("div");
-  const title=document.createElement("strong");title.textContent=name;
-  const description=document.createElement("p");description.textContent="Пекарня или кафе-пекарня";
-  content.append(title,description);
-  const popup = new maplibregl.Popup({offset:22,closeButton:false}).setDOMContent(content);
+  const point=[lat,lon,name];
+  element.dataset.bakeryKey=CatchmentCore.key(point);
+  element.classList.toggle('selected',Catchments.isSelected(point));
   const preview=()=>{
-    const building=findBuildingForBakery([lat,lon,name]);
+    const building=findBuildingForBakery(point);
     highlightBuilding(building);
+    Catchments.show(point);
   };
   element.addEventListener("mouseenter",preview);
   element.addEventListener("focus",preview);
-  element.addEventListener("mouseleave",clearBuildingHighlight);
-  element.addEventListener("blur",clearBuildingHighlight);
-  element.addEventListener("click",preview);
-  return new maplibregl.Marker({element,anchor:"center"}).setLngLat([lon,lat]).setPopup(popup).addTo(map);
+  element.addEventListener("mouseleave",()=>{clearBuildingHighlight();Catchments.leave();});
+  element.addEventListener("blur",()=>{clearBuildingHighlight();Catchments.leave();});
+  element.addEventListener("click",event=>{event.stopPropagation();highlightBuilding(findBuildingForBakery(point));Catchments.show(point,true);});
+  return new maplibregl.Marker({element,anchor:"center"}).setLngLat([lon,lat]).addTo(map);
 }
 
 const buildingPopup=new maplibregl.Popup({closeButton:false,offset:14});
@@ -256,18 +245,17 @@ function clearBuildingHighlight() {
 }
 function inspectBakeryBuilding(event) {
   if(!mapReady||map.getZoom()<14||map.isMoving())return;
+  if(event.originalEvent?.target?.closest('.bakery-dot'))return;
   const rendered=map.queryRenderedFeatures(event.point,{layers:["building-3d","building-roofs"]})[0];
   // Vector tiles may merge hundreds of separate houses into one MultiPolygon.
   // Select the polygon under the pointer before matching any bakery.
   const geometry=rendered&&BuildingMatch.componentAt(rendered.geometry,[event.lngLat.lng,event.lngLat.lat]);
   const feature=geometry?{geometry,properties:rendered.properties}:null;
   const matches=feature?bakeries.filter(([lat,lon])=>BuildingMatch.contains(feature.geometry,[lon,lat])):[];
-  if(!matches.length){clearBuildingHighlight();return;}
+  if(!matches.length){clearBuildingHighlight();Catchments.leave();return;}
   highlightBuilding(feature);
   map.getCanvas().style.cursor="pointer";
-  const content=document.createElement("div");
-  matches.forEach(point=>{const name=document.createElement("strong");name.textContent=point[2];content.append(name,document.createElement("br"));});
-  buildingPopup.setLngLat(event.lngLat).setDOMContent(content).addTo(map);
+  Catchments.show(matches[0]);
 }
 
 function renderCandidates() {
@@ -320,6 +308,7 @@ function updateCandidateScores() {
 }
 
 function openCandidate(item,focusMap=false) {
+  if(focusMap)Catchments.hide();
   selectedCandidate = item;
   document.querySelector(".sidebar").classList.remove("mobile-open");
   document.getElementById("mobileResults").setAttribute("aria-expanded","false");
@@ -360,7 +349,7 @@ function coordinatesFor(element) {
   return null;
 }
 function mergeVerifiedPoints(points) {
-  const merged=[...points];
+  const merged=[...new Map(points.filter(p=>Array.isArray(p)&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&typeof p[2]==='string').map(p=>[CatchmentCore.key(p),p])).values()];
   verifiedUserPoints.forEach(point=>{
     const index=merged.findIndex(item=>Math.abs(item[0]-point[0])<.00045&&Math.abs(item[1]-point[1])<.0007);
     if(index>=0) merged[index]=point; else merged.push(point);
@@ -375,13 +364,22 @@ function applyBakeryData(points,sourceLabel,status) {
   document.getElementById("pointCount").textContent=bakeries.length;
   document.getElementById("sourceLabel").textContent=sourceLabel;
   document.getElementById("mapStatus").innerHTML=`<span></span> ${status}`;
+  Catchments.recompute();
 }
 async function loadLiveBakeries() {
   const query=`[out:json][timeout:20];(nwr["shop"="bakery"](52.30,9.60,52.45,9.88);nwr["amenity"="cafe"]["name"~"Bäck|Back|Brot|MarktCaf",i](52.30,9.60,52.45,9.88););out center tags;`;
+  let snapshotTime=0;
+  try {
+    const response=await fetch('./data/bakeries.json');
+    if(!response.ok)throw new Error('Snapshot unavailable');
+    const snapshot=await response.json();
+    snapshotTime=Date.parse(snapshot.snapshot)||0;
+    applyBakeryData(snapshot.points,`OSM · ${snapshot.snapshot.slice(0,10)}`,"Снимок OSM · обновляем точки…");
+  } catch (_) {}
   let cached=null;
   try {
     cached=JSON.parse(localStorage.getItem("hannover-bakeries-v1"));
-    if(cached?.points?.length>10&&Date.now()-cached.savedAt<7*24*60*60*1000) applyBakeryData(cached.points,"кэш OSM + проверенные","Точки из кэша · обновляем…");
+    if(cached?.points?.length>10&&cached.savedAt>snapshotTime&&Date.now()-cached.savedAt<7*24*60*60*1000) applyBakeryData(cached.points,"кэш OSM + проверенные","Точки из кэша · обновляем…");
   } catch (_) { cached=null; }
   for(const endpoint of overpassEndpoints) {
     const controller=new AbortController();
@@ -390,6 +388,7 @@ async function loadLiveBakeries() {
       const response=await fetch(`${endpoint}?data=${encodeURIComponent(query)}`,{signal:controller.signal});
       if(!response.ok) throw new Error(`OSM ${response.status}`);
       const payload=await response.json();
+      if(payload.remark)throw new Error('Incomplete OSM response');
       const live=payload.elements.map(element=>{
         const coordinates=coordinatesFor(element);
         return coordinates?[coordinates[0],coordinates[1],element.tags?.name||element.tags?.brand||"Пекарня"]:null;
@@ -401,11 +400,12 @@ async function loadLiveBakeries() {
       return;
     } catch (_) {} finally { clearTimeout(timer); }
   }
-  if(cached?.points?.length>10) {
+  if(cached?.points?.length>10&&cached.savedAt>snapshotTime) {
     applyBakeryData(cached.points,"сохранённые данные OSM","Сохранённые точки · обновление недоступно");
     return;
   }
-  applyBakeryData(bakeries,"резервная выборка","Резервные данные · OSM недоступен");
+  if(bakeries.length)applyBakeryData(bakeries,"снимок OSM + проверенные","Снимок OSM · обновление недоступно");
+  else document.getElementById('mapStatus').textContent='Не удалось загрузить пекарни. Обновите страницу.';
 }
 
 function updateBuildingStatus() {
@@ -435,12 +435,13 @@ map.on("load",()=>{
   renderBakeries();
   renderCoverage();
   updateBuildingStatus();
+  Catchments.init();
   loadLiveBakeries();
 });
 map.on("moveend",()=>{ renderBakeries(); renderCoverage(); updateBuildingStatus(); });
 map.on("mousemove",inspectBakeryBuilding);
 map.on("movestart",clearBuildingHighlight);
-map.getCanvas().addEventListener("mouseleave",clearBuildingHighlight);
+map.getCanvas().addEventListener("mouseleave",()=>{clearBuildingHighlight();Catchments.leave();});
 map.on("error",event=>{ if(!mapReady) document.getElementById("mapStatus").innerHTML="<span></span> Карта временно недоступна"; });
 
 document.querySelectorAll("[data-minutes]").forEach(button=>button.addEventListener("click",()=>{

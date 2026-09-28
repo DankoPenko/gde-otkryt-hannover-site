@@ -31,7 +31,7 @@
           <section class="intro">
             <div class="eyebrow"><span></span> Анализ локаций</div>
             <h1>Пекарни · Ганновер</h1>
-            <p>Выберите зону — карта приблизится и покажет дома подробнее.</p>
+            <p>Наведите на пекарню, чтобы увидеть её дома и оценку жителей.</p>
           </section>
 
           <section class="controls" aria-label="Настройки анализа" hidden>
@@ -46,7 +46,7 @@
           </section>
 
           <section class="metrics" aria-label="Сводка по городу">
-            <article><span>Точек на карте</span><strong id="pointCount">25</strong><small id="sourceLabel">загрузка OSM…</small></article>
+            <article><span>Точек на карте</span><strong id="pointCount">—</strong><small id="sourceLabel">загрузка OSM…</small></article>
             <article><span>Здания</span><strong id="buildingCount">3D</strong><small id="buildingLabel">при приближении</small></article>
           </section>
 
@@ -78,6 +78,13 @@
       </main>
     </div>
 
+    <aside class="catchment-card" id="catchmentCard" aria-label="Дома ближайшей пекарни" hidden>
+      <button class="drawer-close" id="catchmentClose" type="button" aria-label="Закрыть карточку пекарни">×</button>
+      <span class="score-label">Ближайшая пекарня</span>
+      <h2 id="catchmentName"></h2>
+      <div id="catchmentBody" aria-live="polite"></div>
+      <p class="catchment-hint" id="catchmentHint"></p>
+    </aside>
     <div class="drawer-backdrop" id="drawerBackdrop"></div>
     <aside class="detail-drawer" id="detailDrawer" aria-hidden="true" aria-labelledby="detailTitle" inert>
       <button class="drawer-close" id="drawerClose" type="button" aria-label="Закрыть">×</button>
@@ -106,9 +113,10 @@
       <button class="dialog-close" id="dialogClose" aria-label="Закрыть">×</button>
       <span class="dialog-kicker">Методика MVP</span>
       <h2>Потенциал, а не прогноз прибыли</h2>
-      <p>Предварительная оценка учитывает примерное число жителей, расстояние до ближайшей точки и конкурентов в пределах 800 м. Число жителей пока задано для демонстрации, а пекарни загружаются из OpenStreetMap.</p>
+      <p>Карточки пекарен показывают модельную оценку жителей в закреплённых жилых домах OSM: площадь контура × этажность × 80% ÷ 45 м². Каждый дом закреплён за одной ближайшей пекарней по прямой. Это не перепись и не прогноз покупателей; неизвестные типы зданий исключены из оценки жителей.</p>
+      <p>Рейтинг кандидатных зон — отдельная демонстрационная модель: число жителей в этих зонах пока задано вручную. Оно не связано с новым распределением домов по пекарням.</p>
       <ol>
-        <li><b>Доступность:</b> расстояние по прямой переводится в приблизительные минуты. Круги 5–15 минут меняют только отображение радиуса, а не рейтинг.</li>
+        <li><b>Доступность:</b> расстояние по прямой переводится в приблизительные минуты, без маршрутов и барьеров. Радиусы сейчас скрыты.</li>
         <li><b>Конкуренция:</b> снижаем балл, если рядом много похожих точек.</li>
         <li><b>Спрос:</b> повышаем балл для плотных жилых кластеров.</li>
       </ol>
@@ -117,6 +125,8 @@
 
     <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" crossorigin=""></script>
     <script src="./building-match.js"></script>
+    <script src="./catchment-core.js"></script>
     <script src="./app.js"></script>
+    <script src="./catchment-ui.js"></script>
   </body>
 </html>
