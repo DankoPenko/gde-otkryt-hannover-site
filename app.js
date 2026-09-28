@@ -429,6 +429,8 @@ map.on("load",()=>{
   map.addSource("coverage",{type:"geojson",data:featureCollection()});
   map.addLayer({id:"coverage-fill",type:"fill",source:"coverage",paint:{"fill-color":"#65b9a1","fill-opacity":.035}},beforeBuildings);
   map.addLayer({id:"coverage-outline",type:"line",source:"coverage",paint:{"line-color":"#438e7a","line-width":1,"line-opacity":.2}},beforeBuildings);
+  // Radius overlays are temporarily hidden; keep points and zone markers.
+  ["potential-fill","potential-outline","coverage-fill","coverage-outline"].forEach(id=>map.setLayoutProperty(id,"visibility","none"));
   renderCandidates();
   renderBakeries();
   renderCoverage();
