@@ -38,7 +38,7 @@ const Catchments=(()=>{
       const pending=fetch('./data/'+group.file,{cache:'force-cache'}).then(r=>{
         if(!r.ok)throw new Error('Geometry unavailable');
         return new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).json();
-      }).then(data=>{if(data.type!=='FeatureCollection'||data.features.length!==group.buildings)throw new Error('Invalid geometry');return data;}).catch(error=>{geometryCache.delete(group.file);throw error;});
+      }).then(data=>{if(data.type!=='FeatureCollection'||data.features.length!==group.buildings+(group.auxiliary||0))throw new Error('Invalid geometry');return data;}).catch(error=>{geometryCache.delete(group.file);throw error;});
       geometryCache.set(group.file,pending);
       if(geometryCache.size>24)geometryCache.delete(geometryCache.keys().next().value);
     }
@@ -80,16 +80,18 @@ const Catchments=(()=>{
     value.textContent=group.residential?`≈ ${formatNumber(Math.max(10,Math.round(group.population/10)*10))}`:'—';
     const label=document.createElement('span');label.textContent='жителей · модельная оценка';metric.append(value,label);body.append(metric);
     const grid=document.createElement('div');grid.className='catchment-grid';
-    for(const [labelText,valueText] of [['Жилых домов',formatNumber(group.residential)],['Всего зданий',formatNumber(group.buildings)]]){
+    for(const [labelText,valueText] of [['Жилых домов',formatNumber(group.residential)],['Зданий в расчёте',formatNumber(group.buildings)]]){
       const item=document.createElement('div'),label=document.createElement('span'),value=document.createElement('strong');label.textContent=labelText;value.textContent=valueText;item.append(label,value);grid.append(item);
     }
     body.append(grid);
     const note=document.createElement('p');note.className='catchment-note';
     note.textContent=group.residential?`Население оценено только для ${formatNumber(group.residential)} жилых домов. Это не число реальных покупателей.`:'В этой группе нет зданий с жилым типом в OSM. Население не оценено.';body.append(note);
-    const legend=document.createElement('p');legend.className='catchment-colors';legend.innerHTML='<span><i class="swatch residential"></i>Жилые</span><span><i class="swatch other"></i>Прочие / тип неизвестен</span>';body.append(legend);
+    const legend=document.createElement('p');legend.className='catchment-colors';legend.innerHTML='<span><i class="swatch residential"></i>Жилые</span><span><i class="swatch other"></i>Прочие / тип неизвестен / постройки</span>';body.append(legend);
+    const context=document.createElement('p');context.className='catchment-note';context.textContent='Серые контуры — вне выбранной группы или отсутствуют в сохранённом снимке.';body.append(context);
     const geometryState=document.createElement('p');geometryState.id='catchmentGeometryState';geometryState.className='catchment-note';geometryState.setAttribute('role','status');body.append(geometryState);
     const zoom=document.createElement('button');zoom.className='catchment-zoom';zoom.textContent='Показать все дома';zoom.onclick=()=>{pinned=true;document.getElementById('catchmentHint').textContent='Выбрана пекарня · Esc, чтобы снять выбор';focusGroup();};body.append(zoom);
     const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Как рассчитано';details.append(summary);
+    const auxiliary=document.createElement('p');auxiliary.textContent=`Дополнительно подсвечены ${formatNumber(group.auxiliary||0)} вспомогательных и малых построек: гаражи, навесы и другие контуры меньше 20 м². Они не входят в число зданий выше и в оценку жителей.`;details.append(auxiliary);
     const method=document.createElement('p');method.textContent=`Каждое здание относится к ближайшей пекарне по расстоянию по прямой от центра контура. Площадь × этажи × 80% ÷ 45 м² на жителя. Это допущения модели, не перепись. Для ${formatNumber(group.levelsAssumed)} жилых домов этажность принята: 2 для отдельных домов, 3 для многоквартирных. ${formatNumber(group.unknown)} зданий без типа и ${formatNumber(group.other)} нежилых не входят в оценку населения.`;details.append(method);
     const scope=document.createElement('p');scope.textContent=`Сохранённый снимок OSM: ${String(meta.snapshot).slice(0,10)}. Среднее расстояние: ${group.buildings?Math.round(group.distanceSum/group.buildings):0} м. Выборка: 52.30–52.45° N, 9.60–9.88° E. Вне этой области дома и пекарни не учтены; у границ оценка неполная. Пересчёт выполняется при публикации нового снимка, а не при открытии страницы.`;details.append(scope);body.append(details);
     if(group.edge){const edge=document.createElement('p');edge.className='catchment-note';edge.textContent='Зона достигает границы выборки — охват неполный.';body.append(edge);}
