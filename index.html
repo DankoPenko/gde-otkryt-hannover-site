@@ -10,15 +10,19 @@
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://tiles.openfreemap.org" />
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" crossorigin="" />
-    <link rel="stylesheet" href="./styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=premises-1" />
   </head>
-  <body>
+  <body data-view="premises">
     <div class="app-shell">
       <header class="topbar">
         <a class="brand" href="#" aria-label="Где открыть — на главную">
           <span class="brand-mark" aria-hidden="true"><span></span></span>
           <span>Где открыть</span>
         </a>
+        <div class="view-switch" role="group" aria-label="Режим карты">
+          <button type="button" id="premisesMode" aria-pressed="true">Помещения</button>
+          <button type="button" id="businessMode" aria-pressed="false">Заведения</button>
+        </div>
         <div class="category-switch" role="group" aria-label="Тип заведений">
           <button type="button" data-category="bakery" aria-pressed="true"><span aria-hidden="true">🥐</span> Пекарни</button>
           <button type="button" data-category="beauty" aria-pressed="false"><span aria-hidden="true">💅</span> Nails & beauty</button>
@@ -31,6 +35,10 @@
       </header>
 
       <main class="workspace">
+        <aside class="premises-panel" id="premisesPanel" aria-label="Помещения в аренду">
+          <div class="premises-heading"><span class="eyebrow">Аренда · Ганновер</span><h1>Место для бизнеса</h1><p>Объявления и окружение.<br>Без обещаний доходности.</p></div>
+          <div id="premisesContent" aria-live="polite"><p>Загружаем подборку помещений…</p></div>
+        </aside>
         <aside class="sidebar" aria-label="Панель анализа">
           <section class="intro">
             <div class="eyebrow"><span></span> Анализ локаций</div>
@@ -56,7 +64,7 @@
 
           <section class="ranked-section">
             <div class="section-heading">
-              <div><span class="field-label">Лучшие зоны</span><small>по потенциалу</small></div>
+              <div><span class="field-label">Демонстрационные зоны</span><small>не рейтинг помещений</small></div>
               <span class="count-badge" id="candidateCount">6</span>
             </div>
             <div class="candidate-list" id="candidateList"></div>
@@ -78,6 +86,7 @@
             <div class="bakery-only"><i class="legend-dot medium"></i>Средний</div>
           </div>
           <button class="mobile-results" id="mobileResults" type="button" aria-expanded="false">Показать 6 лучших зон</button>
+          <button class="premises-mobile" id="premisesMobile" type="button" aria-expanded="true">Показать карту</button>
         </section>
       </main>
     </div>
@@ -125,13 +134,20 @@
         <li><b>Спрос:</b> повышаем балл для плотных жилых кластеров.</li>
       </ol>
       <p class="dialog-note">OSM не гарантирует полноту. Для реального решения нужно сверить выдачу с Google Maps и местными каталогами, а затем добавить Zensus 2022, аренду и пешеходный трафик.</p>
+      <p>Для помещений считаем жилые дома, модельное население и конкурентов в пределах 800 м по прямой. Это окружение адреса, не эксклюзивный охват и не пешеходный маршрут. Для скрытых адресов расчёт отсутствует; ориентиры кварталов отмечены как приблизительные. Объявления — ручная подборка с датой проверки, без подтверждения свободности владельцем.</p>
+    </dialog>
+    <dialog id="premisesCompare" aria-labelledby="compareTitle">
+      <button class="dialog-close" id="compareClose" type="button" aria-label="Закрыть сравнение">×</button>
+      <span class="eyebrow">На одинаковых условиях</span><h2 id="compareTitle">Сравнение помещений</h2>
+      <div id="compareContent"></div>
     </dialog>
 
     <script src="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.js" crossorigin=""></script>
     <script src="./building-match.js"></script>
     <script src="./catchment-core.js"></script>
     <script src="./building-view.js?v=3d-1"></script>
-    <script src="./app.js?v=3d-1"></script>
-    <script src="./catchment-ui.js?v=3d-1"></script>
+    <script src="./app.js?v=premises-1"></script>
+    <script src="./catchment-ui.js?v=premises-1"></script>
+    <script src="./premises.js?v=premises-1"></script>
   </body>
 </html>

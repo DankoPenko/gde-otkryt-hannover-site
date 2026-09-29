@@ -147,6 +147,7 @@ function createBakeryMarker([lat,lon,name]) {
   element.dataset.bakeryKey=CatchmentCore.key(point);
   element.classList.toggle('selected',Catchments.isSelected(point));
   const preview=()=>{
+    if(window.Premises?.active())return;
     const building=findBuildingForBakery(point);
     highlightBuilding(building);
     Catchments.show(point);
@@ -155,7 +156,7 @@ function createBakeryMarker([lat,lon,name]) {
   element.addEventListener("focus",preview);
   element.addEventListener("mouseleave",()=>{clearBuildingHighlight();Catchments.leave();});
   element.addEventListener("blur",()=>{clearBuildingHighlight();Catchments.leave();});
-  element.addEventListener("click",event=>{event.stopPropagation();highlightBuilding(findBuildingForBakery(point));Catchments.show(point,true);});
+  element.addEventListener("click",event=>{event.stopPropagation();window.Premises?.setMode(false);highlightBuilding(findBuildingForBakery(point));Catchments.show(point,true);});
   return new maplibregl.Marker({element,anchor:"center"}).setLngLat([lon,lat]).addTo(map);
 }
 
@@ -191,6 +192,7 @@ function clearBuildingHighlight() {
   map.getCanvas().style.cursor="";
 }
 function inspectBakeryBuilding(event) {
+  if(window.Premises?.active())return;
   if(!mapReady||map.getZoom()<14||map.isMoving())return;
   if(event.originalEvent?.target?.closest('.bakery-dot'))return;
   const rendered=map.queryRenderedFeatures(event.point,{layers:["building"]})[0];
@@ -300,6 +302,7 @@ function applyBakeryData(points,sourceLabel,status) {
   document.getElementById("pointCount").textContent=bakeries.length;
   document.getElementById("sourceLabel").textContent=sourceLabel;
   document.getElementById("mapStatus").innerHTML=`<span></span> ${status}`;
+  window.Premises?.refresh();
 }
 function updateBuildingStatus() {
   document.getElementById("buildingCount").textContent='3D';
@@ -310,6 +313,7 @@ function updateBuildingStatus() {
 function selectCategory(category){
   if(!categories[category]||category===activeCategory)return;
   activeCategory=category;
+  window.Premises?.clearHomes();
   document.body.dataset.category=category;
   document.querySelectorAll('[data-category]').forEach(el=>{if(el.tagName==='BUTTON')el.setAttribute('aria-pressed',String(el.dataset.category===category));});
   document.getElementById('categoryTitle').textContent=categories[category].title+' · Ганновер';
@@ -343,6 +347,7 @@ map.on("load",()=>{
   renderCoverage();
   updateBuildingStatus();
   Catchments.init();
+  window.Premises?.initMap();
 });
 map.on("moveend",()=>{ renderBakeries(); renderCoverage(); updateBuildingStatus(); });
 map.on("mousemove",inspectBakeryBuilding);

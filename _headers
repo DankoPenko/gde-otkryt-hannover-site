@@ -4,6 +4,10 @@
   Cache-Control: no-cache
 /data/beauty-catchments-index.json
   Cache-Control: no-cache
+/data/premises-index.json
+  Cache-Control: no-cache
+/data/premises/*
+  Cache-Control: private, max-age=31536000, immutable
 /*.js
   Cache-Control: no-cache
 /index.html

@@ -113,6 +113,7 @@ const Catchments=(()=>{
     if(group.edge){const edge=document.createElement('p');edge.className='catchment-note';edge.textContent='Зона достигает границы выборки — охват неполный.';body.append(edge);}
   }
   function show(point,pin=false){
+    if(window.Premises?.active())return;
     clearTimeout(leaveTimer);
     if(status!=='ready'||pinned&&!pin)return;
     const changed=!selected||CatchmentCore.key(selected)!==CatchmentCore.key(point);
@@ -133,11 +134,11 @@ const Catchments=(()=>{
     document.body.classList.remove('catchment-active');
     clearBuildingHighlight();
   }
-  function leave(){if(!pinned)leaveTimer=setTimeout(hide,160);}
+  function leave(){if(!pinned&&!window.Premises?.active())leaveTimer=setTimeout(hide,160);}
   card.addEventListener('mouseenter',()=>clearTimeout(leaveTimer));
   card.addEventListener('mouseleave',leave);
   document.getElementById('catchmentClose').addEventListener('click',hide);
   document.addEventListener('keydown',event=>{if(event.key==='Escape')hide();});
-  map.on('click',event=>{if(!event.originalEvent?.target?.closest('.bakery-dot'))hide();});
+  map.on('click',event=>{if(!window.Premises?.active()&&!event.originalEvent?.target?.closest('.bakery-dot'))hide();});
   return {init,loadCategory,show,leave,hide,isSelected:point=>!!selected&&CatchmentCore.key(selected)===CatchmentCore.key(point)};
 })();
