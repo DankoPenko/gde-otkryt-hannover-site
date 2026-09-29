@@ -4,3 +4,9 @@
   Cache-Control: no-cache
 /data/beauty-catchments-index.json
   Cache-Control: no-cache
+/*.js
+  Cache-Control: no-cache
+/index.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache

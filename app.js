@@ -27,11 +27,11 @@ const map = new maplibregl.Map({
   style:"https://tiles.openfreemap.org/styles/liberty",
   center:[9.7386,52.3745],
   zoom:11.55,
-  pitch:0,
+  pitch:BuildingView.pitch,
   bearing:0,
   minZoom:10.5,
   maxZoom:18,
-  maxPitch:0,
+  maxPitch:40,
   attributionControl:true,
   canvasContextAttributes:{antialias:true}
 });
@@ -102,6 +102,7 @@ function styleCartoonMap() {
   safePaint("building","fill-pattern",null);
   map.setLayerZoomRange("building",12,24);
   safeLayout("building-3d","visibility","none");
+  BuildingView.init(map);
   ["poi_r20","poi_r7","poi_r1","poi_transit","road_one_way_arrow","road_one_way_arrow_opposite","highway-name-path","highway-name-minor","highway-shield-non-us","highway-shield-us-interstate","road_shield_us","boundary_3","boundary_2","boundary_disputed"].forEach(id => safeLayout(id,"visibility","none"));
   ["highway-name-major","label_other","label_village","label_town","label_city","label_city_capital"].forEach(id => {
     safePaint(id,"text-color","#314d43");
@@ -266,7 +267,7 @@ function openCandidate(item,focusMap=false) {
   if (focusMap && mapReady) {
     const mobile=window.matchMedia("(max-width: 820px)").matches;
     const offset=mobile?[0,-Math.min(window.innerHeight*.23,170)]:[-185,0];
-    map.easeTo({center:[item.lon,item.lat],zoom:15.5,pitch:0,bearing:0,offset,duration:650});
+    map.easeTo({center:[item.lon,item.lat],zoom:15.5,pitch:BuildingView.pitch,bearing:0,offset,duration:650});
   }
   document.querySelectorAll(".candidate-card").forEach(card=>card.classList.toggle("active",Number(card.dataset.id)===item.id));
   document.getElementById("detailScore").textContent=item.score;
@@ -301,8 +302,8 @@ function applyBakeryData(points,sourceLabel,status) {
   document.getElementById("mapStatus").innerHTML=`<span></span> ${status}`;
 }
 function updateBuildingStatus() {
-  document.getElementById("buildingCount").textContent='2D';
-  document.getElementById("buildingLabel").textContent='вид сверху';
+  document.getElementById("buildingCount").textContent='3D';
+  document.getElementById("buildingLabel").textContent='мягкий объём';
   document.getElementById("buildingStatus").textContent='Наведите на значок · нажмите, чтобы рассмотреть дома';
 }
 
