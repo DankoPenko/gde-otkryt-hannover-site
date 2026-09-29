@@ -46,8 +46,8 @@
           </section>
 
           <section class="metrics" aria-label="Сводка по городу">
-            <article><span>Точек на карте</span><strong id="pointCount">—</strong><small id="sourceLabel">загрузка OSM…</small></article>
-            <article><span>Здания</span><strong id="buildingCount">3D</strong><small id="buildingLabel">при приближении</small></article>
+            <article><span>Точек на карте</span><strong id="pointCount">—</strong><small id="sourceLabel">сохранённый снимок</small></article>
+            <article><span>Карта домов</span><strong id="buildingCount">2D</strong><small id="buildingLabel">вид сверху</small></article>
           </section>
 
           <section class="ranked-section">
@@ -66,8 +66,8 @@
 
         <section class="map-panel" aria-label="Карта бизнес-потенциала">
           <div id="map"></div>
-          <div class="map-status" id="mapStatus"><span></span> Загрузка точек OSM…</div>
-          <div class="building-status" id="buildingStatus">Приблизьте, чтобы увидеть дома</div>
+          <div class="map-status" id="mapStatus"><span></span> Открываем сохранённый расчёт…</div>
+          <div class="building-status" id="buildingStatus">Наведите на пекарню, чтобы увидеть её дома</div>
           <div class="legend" aria-label="Легенда карты">
             <div><i class="legend-dot bakery"></i>Пекарня</div>
             <div><i class="legend-dot high"></i>Высокий потенциал</div>
@@ -80,7 +80,7 @@
 
     <aside class="catchment-card" id="catchmentCard" aria-label="Дома ближайшей пекарни" hidden>
       <button class="drawer-close" id="catchmentClose" type="button" aria-label="Закрыть карточку пекарни">×</button>
-      <span class="score-label">Ближайшая пекарня</span>
+      <span class="score-label">Дома этой пекарни</span>
       <h2 id="catchmentName"></h2>
       <div id="catchmentBody" aria-live="polite"></div>
       <p class="catchment-hint" id="catchmentHint"></p>

@@ -1,6 +1,5 @@
 let bakeries = [];
 
-const verifiedUserPoints = [[52.3937336,9.6845368,"Rautes MarktCafé Herrenhausen"]];
 const candidates = [
   {id:1,name:"Mühlenberg · центр",lat:52.3433,lon:9.6625,score:89,population:4800,minutes:14,competitors:1,gap:2},
   {id:2,name:"Sahlkamp · север",lat:52.4198,lon:9.7560,score:84,population:4200,minutes:13,competitors:1,gap:2},
@@ -10,11 +9,6 @@ const candidates = [
   {id:6,name:"Ledeburg · центр",lat:52.4230,lon:9.6935,score:68,population:2400,minutes:11,competitors:2,gap:1}
 ];
 
-const overpassEndpoints = [
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter"
-];
 
 let walkMinutes = 10;
 let selectedCandidate = null;
@@ -27,15 +21,17 @@ const map = new maplibregl.Map({
   style:"https://tiles.openfreemap.org/styles/liberty",
   center:[9.7386,52.3745],
   zoom:11.55,
-  pitch:18,
+  pitch:0,
   bearing:0,
   minZoom:10.5,
   maxZoom:18,
-  maxPitch:30,
+  maxPitch:0,
   attributionControl:true,
   canvasContextAttributes:{antialias:true}
 });
-map.addControl(new maplibregl.NavigationControl({showCompass:true,visualizePitch:true}),"top-right");
+map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right");
+map.dragRotate.disable();
+map.touchZoomRotate.disableRotation();
 
 function formatNumber(value) { return new Intl.NumberFormat("ru-RU").format(value); }
 function scoreColor(score) { return score >= 80 ? "#9dd9c5" : score >= 70 ? "#a9cee9" : "#d2dbdf"; }
@@ -66,57 +62,6 @@ function safeLayout(id,property,value) {
   try { map.setLayoutProperty(id,property,value); } catch (_) {}
 }
 
-function registerBuildingPatterns() {
-  if (map.hasImage("roof-tiles")) return;
-  const canvas=document.createElement("canvas");
-  canvas.width=32; canvas.height=32;
-  const context=canvas.getContext("2d");
-  context.fillStyle="#a3afb9";
-  context.fillRect(0,0,32,32);
-  context.fillStyle="#c2cbd2";
-  context.fillRect(0,0,16,8);
-  context.fillRect(16,16,16,8);
-  context.strokeStyle="#8998a4";
-  context.lineWidth=2;
-  for(let y=0;y<=32;y+=8){context.beginPath();context.moveTo(0,y);context.lineTo(32,y);context.stroke();}
-  for(let y=0;y<32;y+=16){
-    for(let x=-8;x<40;x+=16){context.beginPath();context.moveTo(x,y);context.lineTo(x+8,y+8);context.lineTo(x+16,y);context.stroke();}
-  }
-  map.addImage("roof-tiles",context.getImageData(0,0,32,32),{pixelRatio:2});
-  // Separate facade and roof materials keep windows off the roof surface.
-  const materials=[
-    {name:"clay",wall:"#e3e9ed",brick:"#c5d1d9",roof:"#7d929f",tile:"#a9bac4"},
-    {name:"ivory",wall:"#f1f3f3",brick:"#d2dbdb",roof:"#73978f",tile:"#9bb9ae"},
-    {name:"rose",wall:"#dadfe9",brick:"#bac6d5",roof:"#8692ac",tile:"#abb7cc"}
-  ];
-  canvas.width=64; canvas.height=64;
-  materials.forEach(material=>{
-    context.fillStyle=material.wall; context.fillRect(0,0,64,64);
-    context.strokeStyle=material.brick; context.lineWidth=1;
-    for(let y=0;y<64;y+=8){
-      context.beginPath(); context.moveTo(0,y+.5); context.lineTo(64,y+.5); context.stroke();
-      for(let x=(y%16?8:0);x<64;x+=16)context.fillRect(x,y,1,8);
-    }
-    for(let y=7;y<64;y+=32)for(let x=9;x<64;x+=32){
-      context.fillStyle="#ffffff";context.fillRect(x-2,y-2,16,20);
-      context.fillStyle="#547783";context.fillRect(x,y,12,15);
-      context.fillStyle="#a7c5ca";context.fillRect(x+1,y+1,5,6);
-      context.fillStyle=material.wall;context.fillRect(x+5,y,2,15);
-      context.fillRect(x,y+7,12,2);
-      context.fillStyle=material.brick;context.fillRect(x-2,y+16,16,2);
-    }
-    map.addImage(`facade-${material.name}`,context.getImageData(0,0,64,64),{pixelRatio:2});
-    context.fillStyle=material.roof;context.fillRect(0,0,64,64);
-    for(let y=0;y<64;y+=8)for(let x=-8;x<64;x+=16){
-      const offset=y%16?8:0;
-      context.fillStyle=material.tile;context.fillRect(x+offset+1,y+1,14,2);
-      context.fillStyle="rgba(43,48,48,.14)";context.fillRect(x+offset,y+7,16,1);
-      context.fillRect(x+offset,y,1,8);
-    }
-    map.addImage(`roof-${material.name}`,context.getImageData(0,0,64,64),{pixelRatio:2});
-  });
-}
-
 function styleCartoonMap() {
   safePaint("background","background-color","#f0f3f5");
   safePaint("park","fill-color","#b7d9bd");
@@ -139,35 +84,29 @@ function styleCartoonMap() {
     if(layer.type==="fill"&&/farmland|farmyard|industrial|commercial|retail|construction/.test(layer.id))safePaint(layer.id,"fill-color","#e1e9e4");
     if(layer.type==="line"&&/road|bridge|tunnel/.test(layer.id)){
       safePaint(layer.id,"line-color",layer.id.includes("casing")?"#cbd6db":"#ffffff");
+      if(/path|pedestrian|footway/.test(layer.id)){
+        safePaint(layer.id,'line-width',.8);
+        safePaint(layer.id,'line-opacity',.5);
+      }
     }
   });
-  safePaint("building","fill-color","#f0bf91");
-  safePaint("building","fill-outline-color","#9c765d");
-  safePaint("building","fill-opacity",.92);
-  safePaint("building","fill-pattern","roof-tiles");
-  map.setLayerZoomRange("building",13,14);
-  safeLayout("building-3d","visibility","visible");
-  const height=["max",3,["coalesce",["get","render_height"],6]];
-  const variation=["%",["floor",height],3];
-  const material=prefix=>["match",variation,0,`${prefix}-clay`,1,`${prefix}-ivory`,`${prefix}-rose`];
-  safePaint("building-3d","fill-extrusion-height",height);
-  safePaint("building-3d","fill-extrusion-base",["coalesce",["get","render_min_height"],0]);
-  safePaint("building-3d","fill-extrusion-pattern",material("facade"));
-  safePaint("building-3d","fill-extrusion-opacity",1);
-  const building=map.getLayer("building-3d");
-  if(building&&!map.getLayer("building-roofs")){
-    const layers=map.getStyle().layers;
-    const next=layers[layers.findIndex(layer=>layer.id==="building-3d")+1]?.id;
-    map.addLayer({id:"building-roofs",type:"fill-extrusion",source:building.source,"source-layer":building.sourceLayer,minzoom:14,
-      paint:{"fill-extrusion-height":["+",height,.12],"fill-extrusion-base":height,"fill-extrusion-pattern":material("roof"),"fill-extrusion-opacity":1}},next);
-  }
+  safePaint("building","fill-color","#d5dde3");
+  safePaint("building","fill-outline-color","#b8c5cf");
+  safePaint("building","fill-opacity",.9);
+  safePaint("building","fill-pattern",null);
+  map.setLayerZoomRange("building",12,24);
+  safeLayout("building-3d","visibility","none");
   ["poi_r20","poi_r7","poi_r1","poi_transit","road_one_way_arrow","road_one_way_arrow_opposite","highway-name-path","highway-name-minor","highway-shield-non-us","highway-shield-us-interstate","road_shield_us","boundary_3","boundary_2","boundary_disputed"].forEach(id => safeLayout(id,"visibility","none"));
   ["highway-name-major","label_other","label_village","label_town","label_city","label_city_capital"].forEach(id => {
     safePaint(id,"text-color","#314d43");
     safePaint(id,"text-halo-color","#ffffff");
     safePaint(id,"text-halo-width",2);
   });
-  map.setLight({anchor:"viewport",color:"#ffffff",intensity:.36,position:[1.15,210,40]});
+  safePaint('park','fill-color','#dce8de');
+  safePaint('park_outline','line-width',.5);
+  safePaint('landcover_wood','fill-color','#d3e1d7');
+  safePaint('landcover_grass','fill-color','#e2ebe2');
+  safePaint('water','fill-color','#b9dbe8');
 }
 
 function renderCoverage() {
@@ -246,7 +185,7 @@ function clearBuildingHighlight() {
 function inspectBakeryBuilding(event) {
   if(!mapReady||map.getZoom()<14||map.isMoving())return;
   if(event.originalEvent?.target?.closest('.bakery-dot'))return;
-  const rendered=map.queryRenderedFeatures(event.point,{layers:["building-3d","building-roofs"]})[0];
+  const rendered=map.queryRenderedFeatures(event.point,{layers:["building"]})[0];
   // Vector tiles may merge hundreds of separate houses into one MultiPolygon.
   // Select the polygon under the pointer before matching any bakery.
   const geometry=rendered&&BuildingMatch.componentAt(rendered.geometry,[event.lngLat.lng,event.lngLat.lat]);
@@ -318,7 +257,7 @@ function openCandidate(item,focusMap=false) {
   if (focusMap && mapReady) {
     const mobile=window.matchMedia("(max-width: 820px)").matches;
     const offset=mobile?[0,-Math.min(window.innerHeight*.23,170)]:[-185,0];
-    map.easeTo({center:[item.lon,item.lat],zoom:16.1,pitch:18,bearing:0,offset,duration:650});
+    map.easeTo({center:[item.lon,item.lat],zoom:15.5,pitch:0,bearing:0,offset,duration:650});
   }
   document.querySelectorAll(".candidate-card").forEach(card=>card.classList.toggle("active",Number(card.dataset.id)===item.id));
   document.getElementById("detailScore").textContent=item.score;
@@ -343,85 +282,27 @@ function closeDrawer() {
   selectedCandidate=null;
 }
 
-function coordinatesFor(element) {
-  if (typeof element.lat === "number" && typeof element.lon === "number") return [element.lat,element.lon];
-  if (element.center && typeof element.center.lat === "number") return [element.center.lat,element.center.lon];
-  return null;
-}
-function mergeVerifiedPoints(points) {
-  const merged=[...new Map(points.filter(p=>Array.isArray(p)&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&typeof p[2]==='string').map(p=>[CatchmentCore.key(p),p])).values()];
-  verifiedUserPoints.forEach(point=>{
-    const index=merged.findIndex(item=>Math.abs(item[0]-point[0])<.00045&&Math.abs(item[1]-point[1])<.0007);
-    if(index>=0) merged[index]=point; else merged.push(point);
-  });
-  return merged;
-}
 function applyBakeryData(points,sourceLabel,status) {
-  bakeries=mergeVerifiedPoints(points);
+  bakeries=points;
   renderBakeries();
   renderCoverage();
   updateCandidateScores();
   document.getElementById("pointCount").textContent=bakeries.length;
   document.getElementById("sourceLabel").textContent=sourceLabel;
   document.getElementById("mapStatus").innerHTML=`<span></span> ${status}`;
-  Catchments.recompute();
 }
-async function loadLiveBakeries() {
-  const query=`[out:json][timeout:20];(nwr["shop"="bakery"](52.30,9.60,52.45,9.88);nwr["amenity"="cafe"]["name"~"Bäck|Back|Brot|MarktCaf",i](52.30,9.60,52.45,9.88););out center tags;`;
-  let snapshotTime=0;
-  try {
-    const response=await fetch('./data/bakeries.json');
-    if(!response.ok)throw new Error('Snapshot unavailable');
-    const snapshot=await response.json();
-    snapshotTime=Date.parse(snapshot.snapshot)||0;
-    applyBakeryData(snapshot.points,`OSM · ${snapshot.snapshot.slice(0,10)}`,"Снимок OSM · обновляем точки…");
-  } catch (_) {}
-  let cached=null;
-  try {
-    cached=JSON.parse(localStorage.getItem("hannover-bakeries-v1"));
-    if(cached?.points?.length>10&&cached.savedAt>snapshotTime&&Date.now()-cached.savedAt<7*24*60*60*1000) applyBakeryData(cached.points,"кэш OSM + проверенные","Точки из кэша · обновляем…");
-  } catch (_) { cached=null; }
-  for(const endpoint of overpassEndpoints) {
-    const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),12000);
-    try {
-      const response=await fetch(`${endpoint}?data=${encodeURIComponent(query)}`,{signal:controller.signal});
-      if(!response.ok) throw new Error(`OSM ${response.status}`);
-      const payload=await response.json();
-      if(payload.remark)throw new Error('Incomplete OSM response');
-      const live=payload.elements.map(element=>{
-        const coordinates=coordinatesFor(element);
-        return coordinates?[coordinates[0],coordinates[1],element.tags?.name||element.tags?.brand||"Пекарня"]:null;
-      }).filter(Boolean);
-      if(live.length<10) throw new Error("Small OSM result");
-      const merged=mergeVerifiedPoints(live);
-      try { localStorage.setItem("hannover-bakeries-v1",JSON.stringify({savedAt:Date.now(),points:merged})); } catch (_) {}
-      applyBakeryData(merged,"OSM + проверенные","Актуальные точки загружены");
-      return;
-    } catch (_) {} finally { clearTimeout(timer); }
-  }
-  if(cached?.points?.length>10&&cached.savedAt>snapshotTime) {
-    applyBakeryData(cached.points,"сохранённые данные OSM","Сохранённые точки · обновление недоступно");
-    return;
-  }
-  if(bakeries.length)applyBakeryData(bakeries,"снимок OSM + проверенные","Снимок OSM · обновление недоступно");
-  else document.getElementById('mapStatus').textContent='Не удалось загрузить пекарни. Обновите страницу.';
-}
-
 function updateBuildingStatus() {
-  const detailed=map.getZoom()>=14;
-  document.getElementById("buildingCount").textContent=detailed?"3D":"крыши";
-  document.getElementById("buildingLabel").textContent=detailed?"объёмные дома":"текстуры кварталов";
-  document.getElementById("buildingStatus").textContent=detailed?"3D · здания":"Приблизьте, чтобы увидеть дома";
+  document.getElementById("buildingCount").textContent='2D';
+  document.getElementById("buildingLabel").textContent='вид сверху';
+  document.getElementById("buildingStatus").textContent='Наведите на пекарню · нажмите, чтобы рассмотреть дома';
 }
 
 map.on("load",()=>{
   mapReady=true;
-  registerBuildingPatterns();
   styleCartoonMap();
   map.addSource("bakery-building-highlight",{type:"geojson",data:featureCollection()});
-  map.addLayer({id:"bakery-building-highlight",type:"fill-extrusion",source:"bakery-building-highlight",minzoom:14,
-    paint:{"fill-extrusion-height":["get","height"],"fill-extrusion-base":["get","base"],"fill-extrusion-color":"#36cbb0","fill-extrusion-opacity":.65}});
+  map.addLayer({id:"bakery-building-highlight",type:"line",source:"bakery-building-highlight",minzoom:14,
+    paint:{"line-color":"#087d73","line-width":2}});
   map.addSource("potential",{type:"geojson",data:featureCollection()});
   const beforeBuildings=map.getLayer("building")?"building":undefined;
   map.addLayer({id:"potential-fill",type:"fill",source:"potential",paint:{"fill-color":["get","color"],"fill-opacity":.1}},beforeBuildings);
@@ -436,7 +317,6 @@ map.on("load",()=>{
   renderCoverage();
   updateBuildingStatus();
   Catchments.init();
-  loadLiveBakeries();
 });
 map.on("moveend",()=>{ renderBakeries(); renderCoverage(); updateBuildingStatus(); });
 map.on("mousemove",inspectBakeryBuilding);

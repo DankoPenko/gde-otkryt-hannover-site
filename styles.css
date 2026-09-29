@@ -201,13 +201,28 @@ h1 { font-size:24px; font-weight:750; line-height:1.2; }
 .catchment-population span { font-size:13px; color:var(--muted); }
 .catchment-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:16px 0; }
 .catchment-grid>div { padding:10px; background:#eff6f5; border-radius:10px; }
-.catchment-grid>div:last-child { grid-column:1/-1; }
+.catchment-grid>div:last-child { grid-column:auto; }
 .catchment-grid span { display:block; color:var(--muted); font-size:12px; }
 .catchment-grid strong { display:block; margin-top:5px; font-size:18px; }
 .catchment-note,.catchment-hint,.catchment-colors { font-size:12px; line-height:1.5; color:var(--muted); }
 .catchment-hint { margin:14px 0 0; border-top:1px solid var(--line); padding-top:12px; }
 .catchment-card details { font-size:12px; line-height:1.5; color:var(--muted); }
 .catchment-card summary { cursor:pointer; font-size:14px; color:var(--forest); padding:8px 0; }
+.catchment-card { top:84px; width:310px; max-height:calc(100dvh - 108px); border-radius:16px; padding:20px; box-shadow:0 8px 32px #263e4a18; }
+.catchment-card h2 { margin-bottom:16px; }
+.catchment-colors { display:flex; flex-wrap:wrap; gap:8px 14px; }
+.catchment-colors span { display:flex; align-items:center; gap:6px; }
+.swatch { width:12px; height:12px; border-radius:3px; display:inline-block; }
+.swatch.residential { background:#20a793; border:1px solid #087b70; }
+.swatch.other { background:#a4a4c5; border:1px solid #72769b; }
+.catchment-zoom { display:block; width:100%; border:1px solid #d4e5e4; border-radius:10px; background:#edf6f4; color:#176d64; padding:10px; font-size:14px; font-weight:600; cursor:pointer; }
+.catchment-active .bakery-dot:not(.selected) { opacity:.35; }
+.catchment-active .potential-marker { opacity:.2; }
+.catchment-active .bakery-dot.selected { background:#114f53; border-color:#fff; box-shadow:0 0 0 5px #fff9,0 0 0 7px #0e6c6640; }
+.catchment-active .legend { display:none; }
+.intro p { display:block; margin:12px 0 0; color:var(--muted); }
+#catchmentGeometryState { font-size:12px; margin:8px 0 12px; }
+.map-status button,#catchmentGeometryState button { border:0; background:transparent; color:#087b70; text-decoration:underline; cursor:pointer; font:inherit; }
 @media(max-width:820px){.catchment-card { top:auto; bottom:8px; right:8px; left:8px; width:auto; max-height:48dvh; padding:18px; }.catchment-population strong{font-size:28px;}}
 .maplibregl-ctrl-group { border:1px solid #cad9cc!important; border-radius:12px!important; box-shadow:0 4px 16px #29473820!important; }
 .maplibregl-ctrl-group button { width:40px; height:40px; background:#fff; }

@@ -1,0 +1,4 @@
+/data/catchments/*
+  Cache-Control: private, max-age=31536000, immutable
+/data/catchments-index.json
+  Cache-Control: no-cache
