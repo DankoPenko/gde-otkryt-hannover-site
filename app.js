@@ -1,4 +1,10 @@
 let bakeries = [];
+// This array contains only the active category, never a mixed competitor set.
+const categories={
+  bakery:{title:'Пекарни',emoji:'🥐',legend:'Пекарня',label:'Дома этой пекарни',index:'catchments-index.json'},
+  beauty:{title:'Nails & beauty',emoji:'💅',legend:'Маникюр / салон красоты',label:'Дома этого салона',index:'beauty-catchments-index.json'}
+};
+let activeCategory='bakery';
 
 const candidates = [
   {id:1,name:"Mühlenberg · центр",lat:52.3433,lon:9.6625,score:89,population:4800,minutes:14,competitors:1,gap:2},
@@ -133,6 +139,7 @@ function createBakeryMarker([lat,lon,name]) {
   const element = document.createElement("button");
   element.type = "button";
   element.className = "bakery-dot";
+  const icon=document.createElement('span');icon.setAttribute('aria-hidden','true');icon.textContent=categories[activeCategory].emoji;element.append(icon);
   element.classList.toggle("detailed",map.getZoom()>=14);
   element.setAttribute("aria-label",name);
   const point=[lat,lon,name];
@@ -213,6 +220,7 @@ function renderCandidates() {
   };
   if (!mapReady) return;
   clearMarkers(candidateMarkers);
+  if(activeCategory!=='bakery')return;
   if (map.getSource("potential")) {
     map.getSource("potential").setData(featureCollection(candidates.map(item => circleFeature(item.lon,item.lat,560,{score:item.score,color:scoreColor(item.score)}))));
   }
@@ -229,6 +237,7 @@ function renderCandidates() {
 }
 
 function updateCandidateScores() {
+  if(activeCategory!=='bakery'){clearMarkers(candidateMarkers);return;}
   candidates.forEach(item => {
     const distances = bakeries.map(([lat,lon])=>distanceKm(item.lat,item.lon,lat,lon)).sort((a,b)=>a-b);
     item.minutes = Math.max(1,Math.round((distances[0]||1)*15));
@@ -294,8 +303,24 @@ function applyBakeryData(points,sourceLabel,status) {
 function updateBuildingStatus() {
   document.getElementById("buildingCount").textContent='2D';
   document.getElementById("buildingLabel").textContent='вид сверху';
-  document.getElementById("buildingStatus").textContent='Наведите на пекарню · нажмите, чтобы рассмотреть дома';
+  document.getElementById("buildingStatus").textContent='Наведите на значок · нажмите, чтобы рассмотреть дома';
 }
+
+function selectCategory(category){
+  if(!categories[category]||category===activeCategory)return;
+  activeCategory=category;
+  document.body.dataset.category=category;
+  document.querySelectorAll('[data-category]').forEach(el=>{if(el.tagName==='BUTTON')el.setAttribute('aria-pressed',String(el.dataset.category===category));});
+  document.getElementById('categoryTitle').textContent=categories[category].title+' · Ганновер';
+  document.getElementById('pointLegend').textContent=categories[category].emoji+' '+categories[category].legend;
+  document.querySelector('.sidebar').classList.remove('mobile-open');
+  document.getElementById('mobileResults').setAttribute('aria-expanded','false');
+  document.getElementById('mobileResults').textContent='Показать 6 лучших зон';
+  Catchments.hide();closeDrawer();
+  applyBakeryData([],'Сохранённый снимок','Загружаем '+categories[category].title+'…');
+  if(mapReady)Catchments.loadCategory();
+}
+document.querySelectorAll('button[data-category]').forEach(button=>button.addEventListener('click',()=>selectCategory(button.dataset.category)));
 
 map.on("load",()=>{
   mapReady=true;

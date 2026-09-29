@@ -251,6 +251,23 @@ h1 { font-size:24px; font-weight:750; line-height:1.2; }
 .why-box ul { font-size:13px; font-weight:400; }
 .confidence { font-size:12px!important; border-top:1px solid var(--line); }
 button:focus-visible,a:focus-visible { outline:3px solid #438c99; outline-offset:3px; }
+.category-switch { display:flex; gap:4px; padding:4px; border:1px solid #d9e3e9; border-radius:14px; background:#edf2f6; }
+.category-switch button { min-height:38px; padding:6px 14px; border:0; border-radius:10px; background:transparent; font-size:14px; font-weight:650; cursor:pointer; white-space:nowrap; }
+.category-switch button[aria-pressed="true"] { background:#fff; color:#165b68; box-shadow:0 2px 6px #16374618; }
+.category-switch button[data-category="beauty"][aria-pressed="true"] { color:#82466d; }
+.bakery-dot,.bakery-dot.detailed { display:grid; place-items:center; width:28px; height:28px; padding:0; border:1px solid #b4ced7; border-radius:10px; background:#fff; font-family:'Segoe UI Emoji','Apple Color Emoji',sans-serif; font-size:19px; line-height:1; box-shadow:0 2px 5px #183c4a30; }
+.bakery-dot.detailed { width:38px; height:38px; font-size:25px; }
+.bakery-dot:hover,.bakery-dot:focus-visible,.catchment-active .bakery-dot.selected { background:#fff; border-color:#138e86; }
+body[data-category="beauty"] .bakery-dot { border-color:#d8b5cf; }
+body[data-category="beauty"] .bakery-dot.selected { box-shadow:0 0 0 5px #fff9,0 0 0 7px #b7599445; }
+body[data-category="beauty"] .ranked-section,body[data-category="beauty"] #mobileResults,body[data-category="beauty"] .bakery-only { display:none; }
+@media(max-width:820px){
+  .topbar { height:auto!important; flex-basis:auto!important; flex-wrap:wrap; padding:10px 12px!important; gap:8px!important; }
+  .category-switch { order:3; width:100%; }
+  .category-switch button { flex:1; padding:6px 8px; }
+  body[data-category="beauty"] .legend { bottom:20px; }
+  body[data-category="beauty"] .building-status { bottom:66px; }
+}
 dialog { border:1px solid var(--line); background:#fff; box-shadow:0 24px 80px #183e4540; }
 dialog p,dialog li { font-size:16px; font-weight:400; }
 @media (max-width:820px) {

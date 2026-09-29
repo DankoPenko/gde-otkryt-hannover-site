@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0b1916" />
-    <meta name="description" content="MVP-карта потенциала для поиска районов Ганновера с недостаточной доступностью пекарен." />
+    <meta name="description" content="Карта пекарен, маникюрных салонов и салонов красоты Ганновера с оценкой жителей ближайших домов." />
     <title>Где открыть — карта потенциала Ганновера</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%230b1916'/%3E%3Cpath d='M32 11c-9.4 0-17 7.2-17 16.1C15 39.6 32 54 32 54s17-14.4 17-26.9C49 18.2 41.4 11 32 11Z' fill='%23efcc68'/%3E%3Ccircle cx='32' cy='28' r='7' fill='%230b1916'/%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://unpkg.com" />
@@ -19,6 +19,10 @@
           <span class="brand-mark" aria-hidden="true"><span></span></span>
           <span>Где открыть</span>
         </a>
+        <div class="category-switch" role="group" aria-label="Тип заведений">
+          <button type="button" data-category="bakery" aria-pressed="true"><span aria-hidden="true">🥐</span> Пекарни</button>
+          <button type="button" data-category="beauty" aria-pressed="false"><span aria-hidden="true">💅</span> Nails & beauty</button>
+        </div>
         <div class="city-pill" aria-label="Выбранный город">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-5.8 7-12A7 7 0 1 0 5 9c0 6.2 7 12 7 12Zm0-9.5A2.5 2.5 0 1 1 12 6a2.5 2.5 0 0 1 0 5.5Z"/></svg>
           Ганновер
@@ -30,8 +34,8 @@
         <aside class="sidebar" aria-label="Панель анализа">
           <section class="intro">
             <div class="eyebrow"><span></span> Анализ локаций</div>
-            <h1>Пекарни · Ганновер</h1>
-            <p>Наведите на пекарню, чтобы увидеть её дома и оценку жителей.</p>
+            <h1 id="categoryTitle">Пекарни · Ганновер</h1>
+            <p>Наведите на значок, чтобы увидеть ближайшие дома и оценку жителей.</p>
           </section>
 
           <section class="controls" aria-label="Настройки анализа" hidden>
@@ -67,20 +71,20 @@
         <section class="map-panel" aria-label="Карта бизнес-потенциала">
           <div id="map"></div>
           <div class="map-status" id="mapStatus"><span></span> Открываем сохранённый расчёт…</div>
-          <div class="building-status" id="buildingStatus">Наведите на пекарню, чтобы увидеть её дома</div>
+          <div class="building-status" id="buildingStatus">Наведите на значок, чтобы увидеть ближайшие дома</div>
           <div class="legend" aria-label="Легенда карты">
-            <div><i class="legend-dot bakery"></i>Пекарня</div>
-            <div><i class="legend-dot high"></i>Высокий потенциал</div>
-            <div><i class="legend-dot medium"></i>Средний</div>
+            <div id="pointLegend">🥐 Пекарня</div>
+            <div class="bakery-only"><i class="legend-dot high"></i>Высокий потенциал</div>
+            <div class="bakery-only"><i class="legend-dot medium"></i>Средний</div>
           </div>
           <button class="mobile-results" id="mobileResults" type="button" aria-expanded="false">Показать 6 лучших зон</button>
         </section>
       </main>
     </div>
 
-    <aside class="catchment-card" id="catchmentCard" aria-label="Дома ближайшей пекарни" hidden>
-      <button class="drawer-close" id="catchmentClose" type="button" aria-label="Закрыть карточку пекарни">×</button>
-      <span class="score-label">Дома этой пекарни</span>
+    <aside class="catchment-card" id="catchmentCard" aria-label="Дома ближайшего заведения" hidden>
+      <button class="drawer-close" id="catchmentClose" type="button" aria-label="Закрыть карточку заведения">×</button>
+      <span class="score-label" id="catchmentLabel">Дома этой пекарни</span>
       <h2 id="catchmentName"></h2>
       <div id="catchmentBody" aria-live="polite"></div>
       <p class="catchment-hint" id="catchmentHint"></p>
@@ -113,8 +117,8 @@
       <button class="dialog-close" id="dialogClose" aria-label="Закрыть">×</button>
       <span class="dialog-kicker">Методика MVP</span>
       <h2>Потенциал, а не прогноз прибыли</h2>
-      <p>Карточки пекарен показывают модельную оценку жителей в закреплённых жилых домах OSM: площадь контура × этажность × 80% ÷ 45 м². Каждый дом закреплён за одной ближайшей пекарней по прямой. Это не перепись и не прогноз покупателей; неизвестные типы зданий исключены из оценки жителей.</p>
-      <p>Рейтинг кандидатных зон — отдельная демонстрационная модель: число жителей в этих зонах пока задано вручную. Оно не связано с новым распределением домов по пекарням.</p>
+      <p>Карточки заведений показывают модельную оценку жителей в закреплённых жилых домах OSM: площадь контура × этажность × 80% ÷ 45 м². Каждый дом закреплён за одним ближайшим заведением по прямой, отдельно внутри каждой категории. Это не перепись и не прогноз клиентов; неизвестные типы зданий исключены из оценки жителей.</p>
+      <p>Рейтинг кандидатных зон доступен только для пекарен. Это отдельная демонстрационная модель: число жителей в этих зонах пока задано вручную. Оно не связано с распределением домов по заведениям.</p>
       <ol>
         <li><b>Доступность:</b> расстояние по прямой переводится в приблизительные минуты, без маршрутов и барьеров. Радиусы сейчас скрыты.</li>
         <li><b>Конкуренция:</b> снижаем балл, если рядом много похожих точек.</li>

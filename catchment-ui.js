@@ -2,7 +2,14 @@ const Catchments=(()=>{
   let status='loading',groups=new Map(),meta=null,selected=null,pinned=false,request=0,leaveTimer=null;
   const geometryCache=new Map();
   // Start the small saved index while the basemap style is loading.
-  let indexPromise=fetch('./data/catchments-index.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error('Index unavailable');return r.json();}).catch(()=>null);
+  let indexRequest=0;
+  const indexCache=new Map();
+  function fetchIndex(category,force=false){
+    if(force)indexCache.delete(category);
+    if(!indexCache.has(category))indexCache.set(category,fetch('./data/'+categories[category].index,{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null));
+    return indexCache.get(category);
+  }
+  fetchIndex('bakery');
   const card=document.getElementById('catchmentCard');
   const source=()=>map.getSource('bakery-catchment');
   async function init(){
@@ -14,18 +21,25 @@ const Catchments=(()=>{
     const before=layers.slice(buildingIndex+1).find(layer=>layer.type==='symbol')?.id;
     map.addLayer({id:'catchment-flat',type:'fill',source:'bakery-catchment',paint:{'fill-color':color,'fill-opacity':1}},before);
     map.addLayer({id:'catchment-outline',type:'line',source:'bakery-catchment',paint:{'line-color':['match',['get','kind'],'residential','#087b70','#72769b'],'line-width':['interpolate',['linear'],['zoom'],11,.4,16,1.2],'line-opacity':.9}},before);
-    await loadIndex();
+    await loadCategory();
   }
-  async function loadIndex(){
+  async function loadCategory(force=false){
+    const category=activeCategory,ticket=++indexRequest;
+    status='loading';groups=new Map();meta=null;
     try{
-      const data=await indexPromise;
-      if(data?.schema!==2||!data.groups?.length||data.groups.length!==data.bakeries?.length)throw new Error('Invalid saved analysis');
+      const data=await fetchIndex(category,force);
+      if(ticket!==indexRequest||category!==activeCategory)return;
+      const points=data?.points||data?.bakeries;
+      if(data?.schema!==2||!data.groups?.length||data.groups.length!==points?.length||(data.category||'bakery')!==category)throw new Error('Invalid saved analysis');
       meta=data;groups=new Map(data.groups.map(group=>[group.key,group]));status='ready';
-      applyBakeryData(data.bakeries,`OSM · ${data.snapshot.slice(0,10)}`,'Сохранённый расчёт · '+data.snapshot.slice(0,10));
+      const date=(data.pointSnapshot||data.bakerySnapshot||data.snapshot).slice(0,10);
+      applyBakeryData(points,`OSM · ${date}`,'Сохранённый расчёт · '+date);
     }catch(_){
+      if(ticket!==indexRequest||category!==activeCategory)return;
+      indexCache.delete(category);
       status='error';const el=document.getElementById('mapStatus');el.textContent='Не удалось загрузить сохранённый расчёт. ';
       const button=document.createElement('button');button.textContent='Повторить';
-      button.onclick=()=>{button.disabled=true;indexPromise=fetch('./data/catchments-index.json',{cache:'reload'}).then(r=>r.ok?r.json():null).catch(()=>null);loadIndex();};el.append(button);
+      button.onclick=()=>{button.disabled=true;loadCategory(true);};el.append(button);
     }
   }
   async function selectGeometry(){
@@ -45,7 +59,7 @@ const Catchments=(()=>{
     try{
       const data=await geometryCache.get(group.file);
       if(ticket!==request||!selected)return;
-      source()?.setData(data);indicator.textContent='Дома выбранной пекарни выделены на карте';
+      source()?.setData(data);indicator.textContent='Дома выбранного заведения выделены на карте';
     }catch(_){
       if(ticket!==request||!selected)return;
       indicator.textContent='Контуры не загрузились. ';
@@ -66,11 +80,11 @@ const Catchments=(()=>{
     if(!selected)return;
     card.hidden=false;
     document.getElementById('catchmentName').textContent=selected[2];
-    document.getElementById('catchmentHint').textContent=pinned?'Выбрана пекарня · Esc, чтобы снять выбор':'Нажмите на точку, чтобы закрепить';
+    document.getElementById('catchmentLabel').textContent=categories[activeCategory].label;
+    document.getElementById('catchmentHint').textContent=pinned?'Выбрано заведение · Esc, чтобы снять выбор':'Нажмите на значок, чтобы закрепить';
     const body=document.getElementById('catchmentBody');body.replaceChildren();
     if(status!=='ready'){
-      const p=document.createElement('p');p.textContent=status==='error'?'Не удалось загрузить дома. Оценка недоступна.':'Распределяем дома между ближайшими пекарнями…';body.append(p);
-      if(status==='error'){const button=document.createElement('button');button.textContent='Повторить';button.onclick=loadIndex;body.append(button);}
+      const p=document.createElement('p');p.textContent='Загружаем сохранённые дома…';body.append(p);
       return;
     }
     const group=groups.get(CatchmentCore.key(selected));
@@ -89,16 +103,16 @@ const Catchments=(()=>{
     const legend=document.createElement('p');legend.className='catchment-colors';legend.innerHTML='<span><i class="swatch residential"></i>Жилые</span><span><i class="swatch other"></i>Прочие / тип неизвестен / постройки</span>';body.append(legend);
     const context=document.createElement('p');context.className='catchment-note';context.textContent='Серые контуры — вне выбранной группы или отсутствуют в сохранённом снимке.';body.append(context);
     const geometryState=document.createElement('p');geometryState.id='catchmentGeometryState';geometryState.className='catchment-note';geometryState.setAttribute('role','status');body.append(geometryState);
-    const zoom=document.createElement('button');zoom.className='catchment-zoom';zoom.textContent='Показать все дома';zoom.onclick=()=>{pinned=true;document.getElementById('catchmentHint').textContent='Выбрана пекарня · Esc, чтобы снять выбор';focusGroup();};body.append(zoom);
+    const zoom=document.createElement('button');zoom.className='catchment-zoom';zoom.textContent='Показать все дома';zoom.onclick=()=>{pinned=true;document.getElementById('catchmentHint').textContent='Выбрано заведение · Esc, чтобы снять выбор';focusGroup();};body.append(zoom);
     const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent='Как рассчитано';details.append(summary);
     const auxiliary=document.createElement('p');auxiliary.textContent=`Дополнительно подсвечены ${formatNumber(group.auxiliary||0)} вспомогательных и малых построек: гаражи, навесы и другие контуры меньше 20 м². Они не входят в число зданий выше и в оценку жителей.`;details.append(auxiliary);
-    const method=document.createElement('p');method.textContent=`Каждое здание относится к ближайшей пекарне по расстоянию по прямой от центра контура. Площадь × этажи × 80% ÷ 45 м² на жителя. Это допущения модели, не перепись. Для ${formatNumber(group.levelsAssumed)} жилых домов этажность принята: 2 для отдельных домов, 3 для многоквартирных. ${formatNumber(group.unknown)} зданий без типа и ${formatNumber(group.other)} нежилых не входят в оценку населения.`;details.append(method);
-    const scope=document.createElement('p');scope.textContent=`Сохранённый снимок OSM: ${String(meta.snapshot).slice(0,10)}. Среднее расстояние: ${group.buildings?Math.round(group.distanceSum/group.buildings):0} м. Выборка: 52.30–52.45° N, 9.60–9.88° E. Вне этой области дома и пекарни не учтены; у границ оценка неполная. Пересчёт выполняется при публикации нового снимка, а не при открытии страницы.`;details.append(scope);body.append(details);
+    const method=document.createElement('p');method.textContent=`Каждое здание относится к ближайшему заведению выбранной категории (${categories[activeCategory].title}) по расстоянию по прямой от центра контура. Категории рассчитываются независимо. Площадь × этажи × 80% ÷ 45 м² на жителя. Это допущения модели, не перепись. Для ${formatNumber(group.levelsAssumed)} жилых домов этажность принята: 2 для отдельных домов, 3 для многоквартирных. ${formatNumber(group.unknown)} зданий без типа и ${formatNumber(group.other)} нежилых не входят в оценку населения.`;details.append(method);
+    const scope=document.createElement('p');scope.textContent=`Снимок домов OSM: ${String(meta.snapshot).slice(0,10)}; заведений: ${String(meta.pointSnapshot||meta.bakerySnapshot||meta.snapshot).slice(0,10)}. Среднее расстояние: ${group.buildings?Math.round(group.distanceSum/group.buildings):0} м. Выборка: 52.30–52.45° N, 9.60–9.88° E. Вне этой области дома и заведения не учтены; у границ оценка неполная. Пересчёт выполняется при публикации нового снимка, а не при открытии страницы.`;details.append(scope);body.append(details);
     if(group.edge){const edge=document.createElement('p');edge.className='catchment-note';edge.textContent='Зона достигает границы выборки — охват неполный.';body.append(edge);}
   }
   function show(point,pin=false){
     clearTimeout(leaveTimer);
-    if(pinned&&!pin)return;
+    if(status!=='ready'||pinned&&!pin)return;
     const changed=!selected||CatchmentCore.key(selected)!==CatchmentCore.key(point);
     const wasPinned=pinned;
     selected=point;pinned=pin||pinned;
@@ -122,5 +136,5 @@ const Catchments=(()=>{
   document.getElementById('catchmentClose').addEventListener('click',hide);
   document.addEventListener('keydown',event=>{if(event.key==='Escape')hide();});
   map.on('click',event=>{if(!event.originalEvent?.target?.closest('.bakery-dot'))hide();});
-  return {init,show,leave,hide,isSelected:point=>!!selected&&CatchmentCore.key(selected)===CatchmentCore.key(point)};
+  return {init,loadCategory,show,leave,hide,isSelected:point=>!!selected&&CatchmentCore.key(selected)===CatchmentCore.key(point)};
 })();
