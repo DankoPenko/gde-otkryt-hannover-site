@@ -337,9 +337,12 @@ body[data-view="premises"] .legend { bottom:24px; }
 .premises-table-scroll tbody th { background:#f1f5f8; font-weight:600; }
 .premises-table-scroll a { color:#165b85; }
 .premises-mobile { display:none; }
+.topbar #languageToggle { display:inline-flex; align-items:center; justify-content:center; min-width:42px; min-height:36px; padding:6px 10px; border:1px solid #d5e0e4; border-radius:10px; background:#edf3f3; color:#185c63; }
+.topbar #languageToggle:hover { background:#e0eceb; color:#123f47; }
 @media(min-width:821px) and (max-width:1150px){.topbar{gap:10px;padding:0 12px}.info-button{display:none}.category-switch button{padding:6px 8px}.city-pill{display:none}}
 @media(max-width:820px){
   .view-switch { margin-left:auto; }.view-switch button { padding:6px 8px; font-size:14px; }
+  .topbar #languageToggle { order:2; margin-left:auto; }
   .city-pill { display:none; }
   body[data-view="premises"] .workspace { display:block; }
   body[data-view="premises"] .premises-panel { position:absolute; z-index:30; bottom:74px; left:8px; right:8px; max-height:52dvh; padding:18px; border:1px solid #dce5ec; border-radius:18px; box-shadow:0 6px 28px #243e5020; }

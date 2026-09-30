@@ -9,7 +9,7 @@ window.Premises=(()=>{
   const euro=n=>`${num(Math.round(n))} €`;
   const rent=item=>item.rent===null?'По запросу':`${item.rentPrefix}${euro(item.rent)}/мес.`;
   const stats=item=>item.analysis?.[activeCategory];
-  const date=()=>new Date(data.checkedAt+'T12:00:00').toLocaleDateString('ru-RU');
+  const date=()=>new Date(data.checkedAt+'T12:00:00').toLocaleDateString(window.Locale?.current()==='en'?'en-GB':'ru-RU');
   const old=()=>Date.now()-new Date(data.checkedAt+'T00:00:00Z').getTime()>14*86400000;
   const external=(url,label)=>`<a href="${escape(url)}" target="_blank" rel="noopener noreferrer">${escape(label)}</a>`;
   const status=()=>`<p class="premises-disclaimer">${old()?'Снимок устарел — перепроверьте условия. ':''}Объявления проверены ${date()}. Свободность владельцем не подтверждена. Ручная подборка, не весь рынок.</p>`;

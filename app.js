@@ -39,7 +39,7 @@ map.addControl(new maplibregl.NavigationControl({showCompass:false}),"top-right"
 map.dragRotate.disable();
 map.touchZoomRotate.disableRotation();
 
-function formatNumber(value) { return new Intl.NumberFormat("ru-RU").format(value); }
+function formatNumber(value) { return new Intl.NumberFormat(window.Locale?.current()==='en'?'en-GB':'ru-RU').format(value); }
 function scoreColor(score) { return score >= 80 ? "#9dd9c5" : score >= 70 ? "#a9cee9" : "#d2dbdf"; }
 function distanceKm(lat1,lon1,lat2,lon2) {
   const rad = value => value * Math.PI / 180;
