@@ -116,6 +116,41 @@ function styleCartoonMap() {
   safePaint('water','fill-color','#b9dbe8');
 }
 
+function addNearbyPointLayers() {
+  const pointGeometry=['match',['geometry-type'],['MultiPoint','Point'],true,false];
+  const addIconLayer=(id,filter,icon)=>map.addLayer({
+    id,type:'symbol',source:'openmaptiles','source-layer':'poi',minzoom:14,
+    filter:['all',pointGeometry,filter],
+    layout:{'icon-image':icon,'icon-size':['interpolate',['linear'],['zoom'],14,.72,17,.95],
+      'icon-allow-overlap':false,'icon-ignore-placement':false,'icon-optional':true,'symbol-z-order':'source'}
+  });
+  addIconLayer('local-stops-markers',
+    ['match',['get','class'],['bus','rail','railway'],true,false],
+    ['match',['get','class'],'bus','bus','rail','rail','railway','railway','rail']);
+  addIconLayer('local-school-markers',
+    ['match',['get','class'],['school','kindergarten'],true,false],'school');
+
+  const popup=new maplibregl.Popup({closeButton:false,offset:12});
+  for(const [layerId,kind] of [['local-stops-markers','stop'],['local-school-markers','school']]){
+    map.on('click',layerId,event=>{
+      const feature=event.features?.[0];if(!feature)return;
+      const props=feature.properties||{};
+      const title=props.name||props.name_en||props.name_de||(
+        kind==='school'?'Школа':props.class==='bus'?'Автобусная остановка':'Железнодорожная / трамвайная остановка');
+      const content=document.createElement('div');content.className='nearby-popup';content.textContent=title;
+      popup.setLngLat(event.lngLat).setDOMContent(content).addTo(map);
+    });
+    map.on('mouseenter',layerId,()=>{map.getCanvas().style.cursor='pointer';});
+    map.on('mouseleave',layerId,()=>{map.getCanvas().style.cursor='';});
+  }
+  document.querySelectorAll('[data-poi-toggle]').forEach(button=>button.addEventListener('click',()=>{
+    const visible=button.getAttribute('aria-pressed')!=='true';
+    button.setAttribute('aria-pressed',String(visible));
+    const layer=button.dataset.poiToggle==='stops'?'local-stops-markers':'local-school-markers';
+    if(map.getLayer(layer))map.setLayoutProperty(layer,'visibility',visible?'visible':'none');
+  }));
+}
+
 function renderCoverage() {
   if (!mapReady || !map.getSource("coverage")) return;
   if (map.getZoom() < 14) {
@@ -330,6 +365,7 @@ document.querySelectorAll('button[data-category]').forEach(button=>button.addEve
 map.on("load",()=>{
   mapReady=true;
   styleCartoonMap();
+  addNearbyPointLayers();
   map.addSource("bakery-building-highlight",{type:"geojson",data:featureCollection()});
   map.addLayer({id:"bakery-building-highlight",type:"line",source:"bakery-building-highlight",minzoom:14,
     paint:{"line-color":"#087d73","line-width":2}});

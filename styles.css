@@ -67,6 +67,11 @@ h1 { margin: 10px 0 6px; font-size: 1.48rem; line-height: 1.08; letter-spacing: 
 .maplibregl-ctrl-attrib { font-size: 10px; border-radius: 8px 0 0; }
 .map-status, .legend, .building-status { position: absolute; z-index: 5; background: rgba(255,253,241,.94); backdrop-filter: blur(8px); box-shadow: 0 5px 0 rgba(35,65,56,.18), 0 12px 24px rgba(35,65,56,.12); border: 2px solid #647b6d; }
 .map-status { top: 18px; left: 18px; border-radius: 14px; padding: 8px 12px; font-size: .75rem; font-weight: 900; }
+.map-poi-controls { position:absolute; top:66px; left:18px; z-index:6; display:flex; gap:7px; }
+.map-poi-toggle { min-height:36px; padding:6px 10px; display:inline-flex; align-items:center; gap:6px; border:2px solid #647b6d; border-radius:12px; background:rgba(255,253,241,.96); color:#314d43; box-shadow:0 4px 0 rgba(35,65,56,.16),0 8px 16px rgba(35,65,56,.1); font-size:.74rem; font-weight:850; cursor:pointer; }
+.map-poi-toggle[aria-pressed="false"] { opacity:.62; background:#e8edef; box-shadow:0 2px 0 rgba(35,65,56,.12); }
+.map-poi-toggle:hover { transform:translateY(-1px); }
+.nearby-popup { color:#314d43; font-size:13px; font-weight:800; }
 .map-status span { display: inline-block; width: 8px; height: 8px; background: var(--lime); border: 2px solid #759334; border-radius: 50%; margin-right: 7px; }
 .building-status { top: 18px; right: 62px; border-radius: 14px; padding: 8px 12px; font-size: .72rem; color: #53645b; font-weight: 850; }
 .legend { left: 18px; bottom: 22px; border-radius: 14px; padding: 10px 12px; display: flex; gap: 14px; font-size: .7rem; color: #53625c; font-weight: 800; }
@@ -262,6 +267,8 @@ body[data-category="beauty"] .bakery-dot { border-color:#d8b5cf; }
 body[data-category="beauty"] .bakery-dot.selected { box-shadow:0 0 0 5px #fff9,0 0 0 7px #b7599445; }
 body[data-category="beauty"] .ranked-section,body[data-category="beauty"] #mobileResults,body[data-category="beauty"] .bakery-only { display:none; }
 @media(max-width:820px){
+  .map-poi-controls { top:60px; left:12px; gap:6px; }
+  .map-poi-toggle { min-height:34px; padding:5px 8px; font-size:12px; }
   .topbar { height:auto!important; flex-basis:auto!important; flex-wrap:wrap; padding:10px 12px!important; gap:8px!important; }
   .category-switch { order:3; width:100%; }
   .category-switch button { flex:1; padding:6px 8px; }

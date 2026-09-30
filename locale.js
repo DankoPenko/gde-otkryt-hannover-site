@@ -11,6 +11,7 @@
     'Аренда · Ганновер': 'Commercial rent · Hannover', 'Помещения в аренду': 'Spaces for rent', 'Панель анализа': 'Analysis panel', 'Режим карты': 'Map view', 'Тип заведений': 'Business type', 'Выбранный город': 'Selected city',
     'Где открыть': 'Where to open', 'Ганновер': 'Hannover', 'Помещения': 'Spaces', 'Заведения': 'Businesses', 'Пекарни': 'Bakeries', 'Пекарня': 'Bakery', 'Маникюр / салон красоты': 'Nail & beauty salon',
     'Nails & beauty': 'Nails & beauty', ' мин': ' min', 'Высокий потенциал': 'High potential', 'Средний': 'Medium', 'Радиус на карте · пешком': 'Map radius · walking time', 'Время пешком': 'Walking time',
+    'Точки интереса': 'Points of interest', 'Остановки': 'Stops', 'Школы': 'Schools', 'Школа': 'School', 'Автобусная остановка': 'Bus stop', 'Железнодорожная / трамвайная остановка': 'Rail / tram stop',
     'Как считается': 'Methodology', 'О методике': 'About the methodology', 'Анализ локаций': 'Location analysis', 'Точек на карте': 'Locations on map', 'Карта домов': 'Building view', 'мягкий объём': 'soft 3D',
     'сохранённый снимок': 'saved snapshot', 'Демонстрационные зоны': 'Example opportunity areas', 'не рейтинг помещений': 'not a ranking of rental spaces',
     'Открываем сохранённый расчёт…': 'Loading saved analysis…', 'Наведите на значок, чтобы увидеть ближайшие дома': 'Hover over a marker to see nearby homes',

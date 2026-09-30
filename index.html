@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://unpkg.com" />
     <link rel="preconnect" href="https://tiles.openfreemap.org" />
     <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.6.0/dist/maplibre-gl.css" crossorigin="" />
-    <link rel="stylesheet" href="./styles.css?v=premises-1" />
+    <link rel="stylesheet" href="./styles.css?v=poi-1" />
   </head>
   <body data-view="premises">
     <div class="app-shell">
@@ -80,6 +80,10 @@
         <section class="map-panel" aria-label="Карта бизнес-потенциала">
           <div id="map"></div>
           <div class="map-status" id="mapStatus"><span></span> Открываем сохранённый расчёт…</div>
+          <div class="map-poi-controls" role="group" aria-label="Точки интереса">
+            <button type="button" class="map-poi-toggle" data-poi-toggle="stops" aria-pressed="true"><span aria-hidden="true">🚏</span> Остановки</button>
+            <button type="button" class="map-poi-toggle" data-poi-toggle="schools" aria-pressed="true"><span aria-hidden="true">🏫</span> Школы</button>
+          </div>
           <div class="building-status" id="buildingStatus">Наведите на значок, чтобы увидеть ближайшие дома</div>
           <div class="legend" aria-label="Легенда карты">
             <div id="pointLegend">🥐 Пекарня</div>
@@ -148,7 +152,7 @@
     <script src="./building-match.js"></script>
     <script src="./catchment-core.js"></script>
     <script src="./building-view.js?v=3d-1"></script>
-    <script src="./app.js?v=premises-1"></script>
+    <script src="./app.js?v=poi-1"></script>
     <script src="./catchment-ui.js?v=premises-1"></script>
     <script src="./premises.js?v=premises-1"></script>
   </body>
