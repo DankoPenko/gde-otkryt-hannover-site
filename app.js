@@ -83,7 +83,7 @@ function styleCartoonMap() {
   safePaint("landuse_pitch","fill-color","#8ed394");
   safePaint("landuse_cemetery","fill-color","#b0d795");
   safePaint("landuse_hospital","fill-color","#f3b7b1");
-  safePaint("landuse_school","fill-color","#dce3ef");
+  safePaint("landuse_school","fill-color","#f4e3a1");
   safePaint("water","fill-color","#7bcbe8");
   ["waterway_river","waterway_other"].forEach(id => safePaint(id,"line-color","#69b9dc"));
   map.getStyle().layers.forEach(layer=>{
@@ -118,17 +118,27 @@ function styleCartoonMap() {
 
 function addNearbyPointLayers() {
   const pointGeometry=['match',['geometry-type'],['MultiPoint','Point'],true,false];
+  const stopsFilter=['match',['get','class'],['bus','rail','railway'],true,false];
+  // A school may be encoded with class=school for both schools and
+  // kindergartens. Restrict the subclass to `school` to exclude kindergartens.
+  const schoolsFilter=['all',['==',['get','class'],'school'],['==',['get','subclass'],'school']];
+  const addHaloLayer=(id,filter,color,outline,radius)=>map.addLayer({
+    id,type:'circle',source:'openmaptiles','source-layer':'poi',minzoom:14,
+    filter:['all',pointGeometry,filter],
+    paint:{'circle-color':color,'circle-radius':['interpolate',['linear'],['zoom'],14,radius,17,radius+4],
+      'circle-stroke-color':outline,'circle-stroke-width':3,'circle-opacity':1}
+  });
   const addIconLayer=(id,filter,icon)=>map.addLayer({
     id,type:'symbol',source:'openmaptiles','source-layer':'poi',minzoom:14,
     filter:['all',pointGeometry,filter],
-    layout:{'icon-image':icon,'icon-size':['interpolate',['linear'],['zoom'],14,.72,17,.95],
+    layout:{'icon-image':icon,'icon-size':['interpolate',['linear'],['zoom'],14,.9,17,1.08],
       'icon-allow-overlap':false,'icon-ignore-placement':false,'icon-optional':true,'symbol-z-order':'source'}
   });
-  addIconLayer('local-stops-markers',
-    ['match',['get','class'],['bus','rail','railway'],true,false],
+  addHaloLayer('local-stops-halo',stopsFilter,'#1687a0','#ffffff',13);
+  addIconLayer('local-stops-markers',stopsFilter,
     ['match',['get','class'],'bus','bus','rail','rail','railway','railway','rail']);
-  addIconLayer('local-school-markers',
-    ['match',['get','class'],['school','kindergarten'],true,false],'school');
+  addHaloLayer('local-school-halo',schoolsFilter,'#f2c94c','#855f10',12);
+  addIconLayer('local-school-markers',schoolsFilter,'school');
 
   const popup=new maplibregl.Popup({closeButton:false,offset:12});
   for(const [layerId,kind] of [['local-stops-markers','stop'],['local-school-markers','school']]){
@@ -146,8 +156,8 @@ function addNearbyPointLayers() {
   document.querySelectorAll('[data-poi-toggle]').forEach(button=>button.addEventListener('click',()=>{
     const visible=button.getAttribute('aria-pressed')!=='true';
     button.setAttribute('aria-pressed',String(visible));
-    const layer=button.dataset.poiToggle==='stops'?'local-stops-markers':'local-school-markers';
-    if(map.getLayer(layer))map.setLayoutProperty(layer,'visibility',visible?'visible':'none');
+    const layers=button.dataset.poiToggle==='stops'?['local-stops-markers','local-stops-halo']:['local-school-markers','local-school-halo','landuse_school'];
+    layers.forEach(layer=>{if(map.getLayer(layer))map.setLayoutProperty(layer,'visibility',visible?'visible':'none');});
   }));
 }
 
